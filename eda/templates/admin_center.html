@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Superadmin · Eda{% endblock %}
+{% block page_title %}Superadmin konzole{% endblock %}
+{% block content %}
+<div class="welcome-row"><div><span class="eyebrow dark">Pouze superadministrátor</span><h1>Správa Edy</h1><p class="muted-text">Účty, firmy, samostatná projektová oprávnění, systémový provoz a archiv.</p></div></div>
+<nav class="eda-admin-jump" aria-label="Sekce superadministrace"><a href="#uzivatele">Účty</a><a href="#firmy">Firmy</a><a href="#projekty">Projektové role</a><a href="#provoz">Provoz</a><a href="#udalosti">Online události</a><a href="#archiv">Archiv</a></nav>
+<div class="kpi-grid">
+  <div class="kpi"><span>Účty</span><strong>{{ stats.users }}</strong></div>
+  <div class="kpi"><span>Firmy</span><strong>{{ stats.organizations }}</strong></div>
+  <div class="kpi"><span>Projekty</span><strong>{{ stats.projects }}</strong></div>
+  <div class="kpi"><span>Úlohy čekající na akci</span><strong>{{ stats.pending }}</strong></div>
+</div>
+<div id="uzivatele" class="panel"><div class="panel-head"><h2>Uživatelské účty</h2></div>
+ <p class="muted-text">Účty, aktivace a globální práva. Přístupy k projektům nastavuj samostatně.</p>
+ <div class="table-wrap"><table><thead><tr><th>Uživatel</th><th>Stav</th><th>Globální role</th><th>Akce</th></tr></thead><tbody>
+ {% for u in users %}<tr><td>{{ u.display_name }}<br><small>{{ u.email }}</small></td><td>{{ 'Aktivní' if u.is_active_user else 'Pozastavený' }}</td><td>{{ 'Superadmin' if u.is_admin else 'Uživatel' }}</td>
+ <td>{% if u.id != current_user.id %}<form method="post" action="{{ url_for('eda_admin_tools.update_user', user_id=u.id) }}" style="display:inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="toggle_active"><button class="mini-action">{{ 'Pozastavit' if u.is_active_user else 'Aktivovat' }}</button></form>
+ <form method="post" action="{{ url_for('eda_admin_tools.update_user', user_id=u.id) }}" style="display:inline" onsubmit="return confirm('Změnit globální právo superadministrátora?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="toggle_superadmin"><button class="mini-action">{{ 'Odebrat superadmin' if u.is_admin else 'Přidat superadmin' }}</button></form>{% else %}Vlastní účet{% endif %}</td></tr>{% endfor %}
+ </tbody></table></div></div>
+<div id="firmy" class="panel"><div class="panel-head"><h2>Firmy a přístup uživatelů</h2><a href="{{ url_for('web.companies') }}">Správa firem</a></div>
+{% for o in organizations %}<h3>{{ o.name }} <small>({{ o.ico or 'bez IČO' }})</small></h3>
+<div class="table-wrap"><table><thead><tr><th>Uživatel</th><th>Role ve firmě</th></tr></thead><tbody>
+{% for m in memberships if m.organization_id == o.id %}<tr><td>{{ m.user.email }}</td><td>{{ m.role }}</td></tr>{% endfor %}</tbody></table></div>
+<form method="post" action="{{ url_for('eda_admin_tools.membership_update', org_id=o.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-grid"><label>Existující účet<select name="user_id" required>{% for u in users %}<option value="{{ u.id }}">{{ u.email }}</option>{% endfor %}</select></label><label>Firemní role<select name="role"><option value="member">Člen (pouze přiřazené projekty)</option><option value="admin">Správce firmy</option><option value="owner">Vlastník</option><option value="remove">Odebrat členství</option></select></label></div><button class="btn secondary">Uložit členství</button></form><hr>{% endfor %}
+</div>
+<div id="projekty" class="panel"><div class="panel-head"><h2>Role podle projektu</h2></div>
+<p class="muted-text">Každý uživatel může mít jinou roli u každého projektu. Přístup „člen firmy“ sám o sobě neuděluje plnou správu všech projektů.</p>
+{% for p in projects %}<details style="margin:12px 0;border-bottom:1px solid #ddd;padding:8px"><summary><strong>{{ p.name }}</strong> · {{ p.organization.name }}</summary>
+<ul>{% for a in permissions if a.project_id == p.id %}<li>{{ a.email }} — <b>{{ a.role }}</b> ({{ a.status }})</li>{% else %}<li>Bez individuálního přístupu.</li>{% endfor %}</ul>
+<form method="post" action="{{ url_for('eda_admin_tools.project_access', project_id=p.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-grid"><label>E-mail uživatele<input type="email" name="email" required></label><label>Projektová role<select name="role"><option value="viewer">Náhled</option><option value="editor">Editor</option><option value="manager">Správce projektu</option><option value="remove">Odebrat</option></select></label></div><button class="btn secondary">Uložit přístup</button></form></details>{% endfor %}</div>
+<div class="dashboard-grid">
+<div class="panel"><div class="panel-head"><h2 id="provoz">Provoz a server</h2></div>
+{% if disk.partition %}<div class="integration-row"><span>Kapacita sdíleného oddílu</span><b>{{ (disk.partition.total / 1073741824)|round(1) }} GiB</b></div><div class="integration-row"><span>Obsazeno na oddílu</span><b>{{ (disk.partition.used / 1073741824)|round(1) }} GiB</b></div><div class="integration-row"><span>Volno na oddílu</span><b>{{ (disk.partition.available / 1073741824)|round(1) }} GiB</b></div>{% endif %}
+<div class="notice warning">{{ disk.note }} Hostingovou kvótu účtu nelze z těchto hodnot určit.</div>
+{% if disk.load %}<div class="integration-row"><span>System load 1/5/15 min</span><b>{{ disk.load|join(' / ') }}</b></div>{% endif %}
+<div class="integration-row"><span>Zabezpečený diagnostický manifest</span><a href="{{ url_for('eda_admin_tools.secure_manifest') }}" target="_blank" rel="noopener">Otevřít JSON</a></div>
+</div>
+<div class="panel"><div class="panel-head"><h2>Plánované úlohy</h2></div>
+<p class="muted-text">Databázové plány Edy. Nejde o kompletní výpis systémového crontabu hostingu.</p>
+{% for t in schedules %}<div class="integration-row"><span>{{ t.title }}</span><b>{{ 'Zapnuto' if t.enabled else 'Vypnuto' }} · {{ t.frequency }}</b></div>{% else %}<p>Žádné úlohy.</p>{% endfor %}
+</div></div>
+<div class="panel"><div class="panel-head"><h2 id="udalosti">Události objednávek (Fresh Core → Eda)</h2></div><div class="table-wrap"><table><thead><tr><th>Událost</th><th>Shop ID</th><th>Objednávka</th><th>Stav</th><th>Akce</th></tr></thead><tbody>{% for e in recent_events %}<tr><td>{{ e.event_id }}</td><td>{{ e.shop_id }}</td><td>{{ e.external_order_id }}</td><td>{{ e.status }}</td><td>{{ e.action or '—' }}{% if e.error %}<small>{{ e.error }}</small>{% endif %}</td></tr>{% else %}<tr><td colspan="5">Žádné události / tabulka dosud není připravená.</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="panel"><div class="panel-head"><h2>Realizované a čekající úlohy</h2></div><div class="table-wrap"><table><thead><tr><th>ID</th><th>Firma</th><th>Úloha</th><th>Stav</th><th>Schválení</th></tr></thead><tbody>{% for j in jobs %}<tr><td>{{ j.id }}</td><td>{{ j.organization.name }}</td><td>{{ j.title }}</td><td>{{ j.status }}</td><td>{{ 'Vyžaduje' if j.requires_approval else 'Ne' }}</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="panel"><div class="panel-head"><h2 id="archiv">Úložiště dokumentů napříč firmami</h2></div><div class="table-wrap"><table><thead><tr><th>Firma</th><th>Projekt</th><th>Název / číslo</th><th>Typ</th><th>Stav</th></tr></thead><tbody>
+{% for d in stored %}<tr><td>{{ d.organization.name }}</td><td>{{ d.project.name if d.project else 'Nepřiřazeno' }}</td><td><a href="{{ url_for('eda_admin_tools.document_download',document_id=d.id) }}">{{ d.original_name }}</a></td><td>{{ d.document_type or 'Nahraný doklad' }}</td><td>{{ d.status }}</td></tr>{% endfor %}
+{% for i in invoices %}<tr><td>{{ i.project.organization.name if i.project else i.organization_id }}</td><td>{{ i.project.name if i.project else 'Nepřiřazeno' }}</td><td>{% if i.id in invoice_files %}<a href="{{ url_for('eda_admin_tools.invoice_download',document_id=invoice_files[i.id]) }}">{{ i.number or i.external_id }}</a>{% else %}{{ i.number or i.external_id }}{% endif %}</td><td>Faktura {{ i.direction }}</td><td>{{ 'Uhrazeno' if i.paid else 'Neuhrazeno' }}</td></tr>{% endfor %}</tbody></table></div>
+<p class="muted-text">Soubory jsou fyzicky uloženy v privátním úložišti Edy. Tento seznam je pouze index, nikoli veřejný souborový prohlížeč.</p></div>
+<div class="panel"><div class="panel-head"><h2>Poslední synchronizace a chyby</h2></div>
+{% for s in syncs %}<div class="integration-row"><span>{{ s.integration }} · {{ s.created_at }}</span><b>{{ s.status }}</b></div>{% endfor %}
+{% for e in diagnostics %}<div class="integration-row"><span>{{ e.source }} · {{ e.message }}</span><b>{{ e.level }}</b></div>{% endfor %}</div>
+{% endblock %}

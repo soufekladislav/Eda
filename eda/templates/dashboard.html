@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Přehled{% endblock %}{% block page_title %}Přehled{% endblock %}
+{% block head %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>{% endblock %}
+{% block content %}
+<div class="welcome-row eda-dashboard-welcome-row">
+  <div class="eda-dashboard-welcome">
+    <div class="eda-dashboard-photo" aria-hidden="true"></div>
+    <div><span class="eyebrow dark">Dnes {{ today.strftime('%d. %m. %Y') }}</span><h1>Co je potřeba hlídat?</h1><p>Eda sleduje finance, termíny a připravenost firmy k další práci.</p></div>
+  </div>
+  <div class="welcome-actions"><a class="btn primary" href="{{ url_for('web.chat') }}">Napsat Edovi</a><a class="btn secondary" href="{{ url_for('web.planner') }}">Plánovač</a></div>
+</div>
+{% if eda_notifications %}{% set n=eda_notifications[0] %}<div class="eda-guide-strip reminder-guide"><div class="eda-guide-photo" aria-hidden="true"></div><div class="eda-guide-copy"><span class="eyebrow dark">Eda připomíná</span><strong>{{ n.task.title }}</strong><p>Termín {{ n.task.due_date.strftime('%d. %m. %Y') }} · {% if n.overdue %}je po termínu{% elif n.today %}je dnes{% else %}zbývá {{ n.days }} dny{% endif %}.</p></div><div class="eda-guide-actions"><a class="btn primary" href="{{ url_for('web.tasks') }}">Zobrazit úkol</a></div></div>{% endif %}
+{% if guide_state.project_count == 0 %}<div class="setup-nudge"><strong>Další krok: založ první projekt.</strong><span>Bez projektu zatím Eda nemá kam přiřazovat náklady a doklady.</span><a href="{{ url_for('web.projects') }}">Založit projekt →</a></div>{% elif not guide_state.company_ares_verified %}<div class="setup-nudge"><strong>Další krok: ověř firmu v ARES.</strong><span>Eda bude pracovat s ověřeným názvem, IČO, DIČ a sídlem.</span><a href="{{ url_for('web.companies') }}">Ověřit firmu →</a></div>{% endif %}
+<div class="kpi-grid">
+  <article class="kpi"><span>Tržby tento měsíc</span><strong>{{ income|money }}</strong><small>evidované příjmy</small></article>
+  <article class="kpi"><span>Náklady tento měsíc</span><strong>{{ expense|money }}</strong><small>evidované výdaje</small></article>
+  <article class="kpi profit"><span>Výsledek</span><strong>{{ profit|money }}</strong><small>tržby − náklady</small></article>
+  <article class="kpi attention"><span>Vyžaduje pozornost</span><strong>{{ attention_count }}</strong><small>termíny a faktury</small></article>
+</div>
+<div class="dashboard-grid">
+  <section class="panel attention-panel" id="attention">
+    <div class="panel-head"><div><span class="eyebrow dark">Priorita</span><h2>Co vyžaduje pozornost</h2></div><a href="{{ url_for('web.planner') }}">Plánovač</a></div>
+    <div class="attention-list">
+      {% for inv in overdue_invoices %}<div class="attention-item danger"><div><strong>Faktura {{ inv.number or inv.external_id }} po splatnosti</strong><span>Splatnost {{ inv.due_on.strftime('%d. %m. %Y') if inv.due_on else '—' }}</span></div><b>{{ inv.remaining|money }}</b></div>{% endfor %}
+      {% for task in due_tasks %}<div class="attention-item {{ 'danger' if task.due_date and task.due_date <= today else '' }}"><div><strong>{{ task.title }}</strong><span>{{ task.due_date.strftime('%d. %m. %Y') if task.due_date else 'Bez termínu' }} · {{ task.task_type }}</span></div><form method="post" action="{{ url_for('web.task_toggle', task_id=task.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="mini-action">Hotovo</button></form></div>{% endfor %}
+      {% if not overdue_invoices and not due_tasks %}<div class="empty">Nic akutního. Eda má klid. ✓</div>{% endif %}
+    </div>
+  </section>
+  <section class="panel chart-panel"><div class="panel-head"><div><span class="eyebrow dark">6 měsíců</span><h2>Cashflow</h2></div></div><canvas id="cashflowChart" height="150"></canvas></section>
+
+  <section class="panel worker-mini-panel">
+    <div class="panel-head"><div><span class="eyebrow dark">Eda pracuje</span><h2>Poslední práce Edy</h2></div><a href="{{ url_for('web.chat') }}">Zadat úkol</a></div>
+    <div class="compact-list">
+      {% for j in recent_jobs %}<a class="compact-row" href="{{ url_for('web.worker_job', job_id=j.id) }}"><span><strong>{{ j.title }}</strong><small>{{ j.created_at.strftime('%d.%m.%Y %H:%M') }} · {{ j.job_type }}</small></span><b class="job-status {{ j.status }}">{{ j.status }}</b></a>{% else %}<div class="empty">Zatím žádná samostatná práce. Úkol můžeš zadat Edovi v Chatu.</div>{% endfor %}
+    </div>
+  </section>
+  <section class="panel integrations-mini">
+    <div class="panel-head"><div><span class="eyebrow dark">Napojení</span><h2>Stav integrací</h2></div><a href="{{ url_for('web.integrations') }}">Nastavení</a></div>
+    <div class="integration-row"><span>Fresh Core</span><b class="status {{ 'ok' if core_ok else 'off' }}">{{ 'Připraveno' if core_ok else 'Nenastaveno' }}</b></div>
+    <div class="integration-row"><span>ABRA Flexi</span><b class="status {{ 'ok' if flexi_ok else 'off' }}">{{ 'Připraveno' if flexi_ok else 'Nenastaveno' }}</b></div>
+    <div class="integration-row"><span>Připojené e-shopy</span><b>{{ shop_count }}</b></div>
+  </section>
+</div>
+<script>window.EDA_CHART={{ chart|tojson }};</script><script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

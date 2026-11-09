@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Objednávka #{{ order.external_id }}{% endblock %}
+{% block page_title %}Objednávka #{{ order.external_id }}{% endblock %}
+{% block content %}
+<div class="eda-order-detail">
+  <div class="welcome-row eda-order-heading">
+    <div>
+      <span class="eyebrow dark">{{ shop.name }}</span>
+      <h1>Objednávka #{{ order.external_id }}</h1>
+      <p class="muted-text">{{ order.ordered_at.strftime('%d.%m.%Y %H:%M') if order.ordered_at else '—' }} · {{ order.total|money }} · {{ order.currency or 'CZK' }}</p>
+    </div>
+    <div class="welcome-actions"><a class="btn secondary" href="{{ url_for('web.shop_detail', shop_id=shop.id) }}">Zpět na e-shop</a></div>
+  </div>
+
+  <div class="kpi-grid eda-order-kpis">
+    <article class="kpi"><span>Stav objednávky</span><strong class="small-kpi">{{ order.status or '—' }}</strong></article>
+    <article class="kpi {{ 'profit' if accounting and accounting.status == 'connected' else 'attention' }}"><span>Accounting API</span><strong class="small-kpi">{{ 'Připojeno' if accounting and accounting.status == 'connected' else 'Nepřipojeno' }}</strong></article>
+    <article class="kpi {{ 'profit' if snapshot and snapshot.status in ['loaded','invoice_prepared','dry_run_ok','invoiced'] else 'attention' }}"><span>Fakturační data</span><strong class="small-kpi">{{ {'loaded':'Načtena','invoice_prepared':'Návrh připraven','dry_run_ok':'ABRA ověřeno','invoiced':'Faktura vystavena','error':'Chyba'}.get(snapshot.status, snapshot.status) if snapshot else 'Nenačtena' }}</strong></article>
+    <article class="kpi {{ 'profit' if eda_invoice else 'attention' }}"><span>Doklad Edy</span><strong class="small-kpi">{{ eda_invoice.invoice.number if eda_invoice else (eda_advance.number if eda_advance else 'Zatím nevystaven') }}</strong></article>
+  </div>
+
+  <section class="panel eda-order-issue-card" aria-labelledby="eda-invoice-heading">
+    <div class="panel-head eda-order-panel-head">
+      <div><span class="eyebrow dark">Eda · vlastní fakturace</span><h2 id="eda-invoice-heading">Fakturační doklady</h2><p class="muted-text">PDF se ukládá pouze do Edy. WooCommerce dostane zabezpečený odkaz.</p></div>
+      <a class="btn secondary" href="{{ url_for('eda_invoicing.invoice_setup', shop_id=shop.id) }}">Nastavení fakturace</a>
+    </div>
+    <div class="eda-order-invoice-inner">
+      {% if eda_advance %}
+      <article class="eda-order-document-card">
+        <div class="eda-order-doc-header"><div><span class="eda-order-label">Zálohová výzva</span><strong>{{ eda_advance.number }}</strong></div><span class="eda-order-state {{ 'ok' if eda_advance.publish_status == 'published' else 'warn' }}">{{ 'Předáno do Woo' if eda_advance.publish_status == 'published' else eda_advance.publish_status }}</span></div>
+        <div class="eda-order-document-amount">{{ eda_advance.amount|money }}</div>
+        <p class="muted-text">Zálohová výzva není daňový doklad ani potvrzení přijetí peněz.</p>
+        <div class="eda-order-actions">
+          {% if eda_advance_url %}<a class="btn secondary" href="{{ eda_advance_url }}" target="_blank" rel="noreferrer noopener">Stáhnout PDF zálohy</a>{% endif %}
+          {% if not eda_advance.revoked and eda_advance.publish_status != 'published' %}<form method="post" action="{{ url_for('eda_invoicing.republish_advance',shop_id=shop.id,order_id=order.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn secondary">Znovu zveřejnit</button></form>{% endif %}
+          {% if not eda_advance.revoked %}<form method="post" action="{{ url_for('eda_invoicing.revoke_advance',shop_id=shop.id,order_id=order.id) }}" onsubmit="return confirm('Zneplatnit odkaz na zálohovou výzvu?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn secondary">Zneplatnit odkaz</button></form>{% endif %}
+        </div>
+      </article>
+      {% endif %}
+      {% if eda_invoice %}
+      <article class="eda-order-document-card">
+        <div class="eda-order-doc-header"><div><span class="eda-order-label">Konečná faktura</span><strong>{{ eda_invoice.invoice.number }}</strong></div><span class="eda-order-state {{ 'ok' if eda_invoice.publish_status == 'published' else 'warn' }}">{{ 'Předáno do Woo' if eda_invoice.publish_status == 'published' else eda_invoice.publish_status }}</span></div>
+        <div class="eda-order-document-amount">{{ eda_invoice.invoice.total|money }}</div>
+        <p class="muted-text">{{ 'Uhrazeno' if eda_invoice.invoice.paid else 'K úhradě' }}</p>
+        {% if eda_invoice.publish_error %}<div class="notice warning">{{ eda_invoice.publish_error }}</div>{% endif %}
+        <div class="eda-order-actions">
+          {% if not eda_invoice.revoked and eda_invoice_url %}
+            <a class="btn secondary" href="{{ eda_invoice_url }}" target="_blank" rel="noreferrer noopener">Stáhnout PDF</a>
+            <form method="post" action="{{ url_for('eda_invoicing.republish_invoice', shop_id=shop.id, order_id=order.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary">Předat odkaz do WooCommerce</button></form>
+            <form method="post" action="{{ url_for('eda_invoicing.revoke_invoice_link', shop_id=shop.id, order_id=order.id) }}" onsubmit="return confirm('Zneplatnit odkaz na fakturu?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn secondary">Zneplatnit odkaz</button></form>
+          {% else %}<div class="notice warning">Odkaz je zneplatněn nebo nedostupný. Doklad je archivován v Edovi.</div>{% endif %}
+        </div>
+      </article>
+      {% elif not eda_advance or order.status in ['processing','completed'] %}
+      <div class="eda-order-next-action">
+        <strong>{{ 'Vystavení konečné faktury' if order.status in ['processing','completed'] else 'Zatím bez dokladů' }}</strong>
+        <p class="muted-text">Vystavení je zatím ruční. Uhrazená objednávka může být ve stavu Zpracovává se i Dokončeno.</p>
+        {% if accounting and accounting.status == 'connected' %}
+        <div class="eda-order-actions">
+          <form method="post" action="{{ url_for('eda_invoicing.check_invoice', shop_id=shop.id, order_id=order.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn secondary">Ověřit fakturu bez vystavení</button></form>
+          {% if order.status in ['processing','completed'] %}
+          <form method="post" action="{{ url_for('eda_invoicing.issue_invoice', shop_id=shop.id, order_id=order.id) }}" onsubmit="return confirm('Vystavit skutečnou fakturu? Vznikne účetní doklad a číslo faktury.');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary">Vystavit konečnou fakturu</button></form>
+          {% endif %}
+        </div>
+        {% else %}<p class="muted-text">Nejdřív připoj Accounting API e-shopu.</p>{% endif %}
+      </div>
+      {% endif %}
+      {% if not eda_advance and not eda_invoice and order.status in ['pending','on-hold'] %}
+      <div class="eda-order-next-action">
+        <strong>Bankovní převod – zálohová výzva</strong>
+        <p class="muted-text">Zálohová výzva se zobrazí v zákaznickém detailu objednávky. Samotné vystavení neznamená přijetí platby.</p>
+        <form method="post" action="{{ url_for('eda_invoicing.issue_advance',shop_id=shop.id,order_id=order.id) }}" onsubmit="return confirm('Vystavit skutečnou zálohovou výzvu?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary">Vystavit zálohovou výzvu</button></form>
+      </div>
+      {% endif %}
+    </div>
+    <div class="eda-order-build" aria-label="Diagnostika běžícího fakturačního modulu">Fakturační logika na serveru: <strong>{{ invoice_logic_version|default('nezjištěna') }}</strong>. Nejprve použij „Ověřit fakturu bez vystavení“.</div>
+  </section>
+
+  <div class="eda-order-detail-grid">
+    <section class="panel eda-order-billing" aria-labelledby="eda-billing-heading">
+      <div class="panel-head eda-order-panel-head">
+        <div><span class="eyebrow dark">Fresh Core Accounting</span><h2 id="eda-billing-heading">Fakturační údaje zákazníka</h2></div>
+        {% if accounting and accounting.status == 'connected' %}<form method="post" action="{{ url_for('web.shop_order_accounting_load', shop_id=shop.id, order_id=order.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn secondary">{{ 'Obnovit data' if private_order else 'Načíst účetní data' }}</button></form>{% endif %}
+      </div>
+      {% if private_order %}
+      {% set b = private_order.get('billing') or {} %}
+      <div class="eda-order-info-grid">
+        <div class="eda-order-info"><span>Odběratel</span><strong>{{ b.get('company') or ((b.get('first_name') or '') ~ ' ' ~ (b.get('last_name') or ''))|trim or '—' }}</strong></div>
+        <div class="eda-order-info"><span>IČO / DIČ</span><strong>{{ b.get('ico') or '—' }} / {{ b.get('dic') or '—' }}</strong></div>
+        <div class="eda-order-info"><span>E-mail</span><strong>{{ b.get('email') or '—' }}</strong></div>
+        <div class="eda-order-info"><span>Fakturační adresa</span><strong>{{ b.get('address_1') or '' }}{% if b.get('address_2') %}, {{ b.get('address_2') }}{% endif %}, {{ b.get('postcode') or '' }} {{ b.get('city') or '' }}, {{ b.get('country') or '' }}</strong></div>
+      </div>
+      {% if issuer_vat_mode == 'nonvat' and (private_order.get('total_tax') or '0')|float != 0 %}
+      <div class="eda-order-tax-note"><strong>Daňové metadata WooCommerce</strong><p>Zdrojová objednávka eviduje {{ private_order.get('total_tax') }} Kč jako daň. Eda pro neplátce používá konečnou cenu bez rozpisu DPH. Zkontroluj také zákaznickou pokladnu a daňové nastavení e-shopu.</p></div>
+      {% endif %}
+      <h3 class="eda-order-subhead">Položky objednávky</h3>
+      <div class="table-wrap eda-order-table"><table><thead><tr><th>Položka</th><th>SKU</th><th class="right">Ks</th><th class="right">Cena celkem</th><th class="right">Woo daň*</th></tr></thead><tbody>{% for item in private_order.get('items') or [] %}<tr><td>{{ item.get('name') }}</td><td>{{ item.get('sku') or '—' }}</td><td class="right">{{ item.get('quantity') }}</td><td class="right">{{ '%.2f'|format((item.get('total') or '0')|float + (item.get('total_tax') or '0')|float) }}</td><td class="right">{{ item.get('total_tax') or '0' }}</td></tr>{% endfor %}</tbody></table></div>
+      <p class="eda-order-small-note">*Interní údaj původní objednávky; nejde o DPH vyčíslenou na faktuře neplátce.</p>
+      {% else %}
+      <div class="empty-state"><p>Plné údaje zákazníka zatím nejsou načtené. Pro fakturaci je načti z účetního API.</p></div>
+      {% endif %}
+      {% if snapshot and snapshot.last_error %}<div class="notice warning">{{ snapshot.last_error }}</div>{% endif %}
+    </section>
+
+    <aside class="eda-order-side">
+      <section class="panel eda-order-payment-card" aria-labelledby="eda-payment-heading">
+        <span class="eyebrow dark">Objednávka</span><h2 id="eda-payment-heading">Platba a souhrn</h2>
+        <div class="eda-order-summary-row"><span>Celková částka</span><strong>{{ order.total|money }}</strong></div>
+        <div class="eda-order-summary-row"><span>Stav</span><strong>{{ order.status or '—' }}</strong></div>
+        {% if private_order %}
+          <div class="eda-order-summary-row"><span>Platební metoda</span><strong>{{ private_order.get('payment_method_title') or private_order.get('payment_method') or '—' }}</strong></div>
+          <div class="eda-order-summary-row"><span>Úhrada</span><strong>{{ 'Potvrzená' if private_order.get('is_paid') else 'Nepotvrzená' }}</strong></div>
+        {% else %}<p class="muted-text">Po načtení účetních dat zobrazíme i platební metodu a ověření úhrady.</p>{% endif %}
+      </section>
+      <details class="panel eda-order-legacy"><summary>Starší postup přes ABRA Flexi (volitelné)</summary><div class="eda-order-legacy-inner">
+        {% if private_order %}
+          <p class="muted-text">Starší postup fakturace s dry-runem; není potřeba pro vlastní PDF fakturaci Edy.</p>
+          <form method="post" action="{{ url_for('web.shop_order_invoice_prepare', shop_id=shop.id, order_id=order.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>Projekt<select name="project_id"><option value="">Bez projektu</option>{% for p in projects %}<option value="{{ p.id }}" {{ 'selected' if snapshot and snapshot.project_id==p.id else '' }}>{{ p.name }}</option>{% endfor %}</select></label>
+            <label>Typ dokladu v ABRA<input name="type_code" value="{{ proposal.type_code if proposal else 'FAKTURA' }}" required></label>
+            <label>Splatnost<input type="date" name="due_on" value="{{ proposal.due_on if proposal else '' }}"></label>
+            <div class="eda-order-info-grid"><div class="eda-order-info"><span>Variabilní symbol</span><strong>{{ proposal.variable_symbol if proposal else '—' }}</strong></div><div class="eda-order-info"><span>Částka</span><strong>{{ proposal.amount if proposal else order.total }} {{ proposal.currency if proposal else order.currency }}</strong></div></div>
+            <button class="btn primary" {{ 'disabled' if not flexi_configured else '' }}>Připravit v ABRA</button>
+          </form>
+          {% if not flexi_configured %}<p class="muted-text">Pro tuto firmu není ABRA Flexi připojena.</p>{% endif %}
+        {% else %}<p class="muted-text">Nejdřív načti fakturační údaje.</p>{% endif %}
+      </div></details>
+    </aside>
+  </div>
+</div>
+{% endblock %}

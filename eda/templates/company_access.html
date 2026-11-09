@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block title %}Projektové přístupy{% endblock %}{% block page_title %}Přístupy k projektům{% endblock %}
+{% block content %}
+<div class="welcome-row"><div><span class="eyebrow dark">Nastavení firmy</span><h1>{{ org.name }} – uživatelé projektů</h1><p class="muted-text">Náhled lze udělit pouze na vybraný projekt. Práva správce firmy zde nejsou přidělována.</p></div></div>
+<div class="panel"><h2>Přidat nebo upravit přístup</h2>
+<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-grid"><label>Projekt<select name="project_id" required>{% for p in projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></label><label>E-mail uživatele<input name="email" type="email" required></label><label>Role<select name="role"><option value="viewer">Pozorovatel (náhled)</option><option value="editor">Editor</option><option value="manager">Správce projektu</option><option value="remove">Odebrat</option></select></label></div><button class="btn primary">Uložit oprávnění</button></form>
+<p class="muted-text">Neexistující účet získá čekající přiřazení. Přístup se aktivuje po přihlášení odpovídajícím e-mailem. Automatické odeslání pozvánky zatím není součástí této verze.</p>
+</div><div class="panel"><h2>Současná přiřazení</h2><div class="table-wrap"><table><thead><tr><th>Projekt</th><th>Uživatel</th><th>Role</th><th>Stav</th></tr></thead><tbody>{% for p in permissions %}<tr><td>{{ p.project.name }}</td><td>{{ p.email }}</td><td>{{ p.role }}</td><td>{{ p.status }}</td></tr>{% else %}<tr><td colspan="4">Zatím bez přiřazení.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

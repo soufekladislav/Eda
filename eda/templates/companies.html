@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Firmy{% endblock %}
+{% block page_title %}Firmy a údaje{% endblock %}
+{% block content %}
+<div class="company-layout">
+  <section class="panel company-main">
+    <div class="panel-head company-head">
+      <div>
+        <span class="eyebrow dark">Aktivní firma</span>
+        <h1>{{ org.name }}</h1>
+        <p class="muted-text">Údaje firmy používá Eda při práci s doklady, projekty, e-shopy a účetnictvím.</p>
+      </div>
+      {% if profile and profile.ares_status == 'verified' %}
+        <span class="status ok">ARES ověřeno{% if profile.ares_verified_at %} · {{ profile.ares_verified_at.strftime('%d.%m.%Y') }}{% endif %}</span>
+      {% elif profile and profile.ares_status == 'modified' %}
+        <span class="status off">Upraveno po ověření ARES</span>
+      {% else %}
+        <span class="status off">ARES neověřeno</span>
+      {% endif %}
+    </div>
+
+    {% if can_edit %}
+    <form method="post" class="company-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="update">
+      <div class="form-grid two">
+        <label>Název firmy<input name="name" value="{{ org.name }}" required></label>
+        <label>IČO<input name="ico" value="{{ org.ico or '' }}" inputmode="numeric" maxlength="8"></label>
+        <label>DIČ (pokud je přiděleno)<input name="dic" value="{{ (profile.dic or '') if profile else '' }}"></label>
+        <label>Režim DPH<select name="vat_mode" required>
+          <option value="unknown" {{ 'selected' if not issuer_settings or issuer_settings.vat_mode == 'unknown' else '' }}>Ještě není ověřen</option>
+          <option value="nonvat" {{ 'selected' if issuer_settings and issuer_settings.vat_mode == 'nonvat' else '' }}>Nejsem plátce DPH</option>
+          <option value="vat" {{ 'selected' if issuer_settings and issuer_settings.vat_mode == 'vat' else '' }}>Jsem plátce DPH</option>
+        </select><small>Režim DPH určuje typ vystavovaných dokladů. Samotné DIČ plátcovství neurčuje.</small></label>
+        <label>Měna<select name="currency"><option value="CZK" {{ 'selected' if org.currency == 'CZK' else '' }}>CZK</option><option value="EUR" {{ 'selected' if org.currency == 'EUR' else '' }}>EUR</option><option value="USD" {{ 'selected' if org.currency == 'USD' else '' }}>USD</option></select></label>
+      </div>
+      <label>Sídlo<input name="address" value="{{ profile.address if profile else '' }}"></label>
+      <div class="form-grid two">
+        <label>Právní forma<input name="legal_form" value="{{ profile.legal_form if profile else '' }}"></label>
+        <label>Datum vzniku<input type="date" name="founded_on" value="{{ profile.founded_on.isoformat() if profile and profile.founded_on else '' }}"></label>
+      </div>
+      <label>CZ-NACE<input name="nace" value="{{ profile.nace if profile else '' }}"></label>
+      <div class="company-actions">
+        <button class="btn primary" type="submit">Uložit změny</button>
+      </div>
+    </form>
+    <form method="post" class="ares-verify-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="verify_ares">
+      <input type="hidden" name="ico" value="{{ org.ico or '' }}">
+      <button class="btn secondary" type="submit" {{ 'disabled' if not org.ico else '' }}>Ověřit a doplnit z ARES</button>
+      <small>ARES doplní oficiální název, DIČ, sídlo, právní formu, datum vzniku a dostupné obory činnosti.</small>
+    </form>
+    {% else %}
+      <div class="notice">Údaje firmy může měnit vlastník účtu nebo administrátor.</div>
+    {% endif %}
+    <section class="panel" style="margin-top:14px">
+      <div class="panel-head"><div><span class="eyebrow dark">Centrální nastavení firmy</span><h2>Fakturace a exporty</h2></div></div>
+      <p class="muted-text">Údaje dodavatele a číselnou řadu spravuje Eda společně pro celou firmu; jednotlivé e-shopy mají jen své připojení pro předání odkazu.</p>
+      {% for shop in company_shops %}<p><a class="btn secondary" href="{{ url_for('eda_invoicing.invoice_setup', shop_id=shop.id) }}">Fakturace · {{ shop.name }}</a></p>{% else %}<p>Nejdřív založ e-shop v sekci E-shopy. Samostatné faktury mimo e-shop přidáme v další etapě.</p>{% endfor %}
+      <p class="muted-text">Logo, podpis, vlastní číselné řady pro zálohy a hromadné importy/exporty jsou plánované rozšíření, zatím se při vystavení PDF nepoužívají.</p>
+    </section>
+  </section>
+
+  <aside class="company-side">
+    <section class="panel">
+      <div class="panel-head"><div><span class="eyebrow dark">Účet</span><h2>Moje firmy</h2></div></div>
+      <div class="company-switch-list">
+        {% for item in organizations %}
+          <div class="organization-row">
+            <div><strong>{{ item.name }}</strong><span>{{ item.ico or 'IČO neuvedeno' }}</span></div>
+            {% if item.id == org.id %}<span class="status ok">aktivní</span>{% else %}
+            <form method="post" action="{{ url_for('web.organization_switch', organization_id=item.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="mini-action">Přepnout</button></form>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="panel new-company-panel">
+      <div class="panel-head"><div><span class="eyebrow dark">Nová firma</span><h2>Přidat k účtu</h2></div></div>
+      <form method="post" id="newCompanyForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="create">
+        <label>IČO
+          <div class="ares-inline"><input id="newCompanyIco" name="ico" inputmode="numeric" maxlength="8" placeholder="např. 00177041"><button type="button" class="mini-action" id="aresLookupBtn">Načíst ARES</button></div>
+        </label>
+        <div id="aresLookupState" class="ares-state" aria-live="polite"></div>
+        <label>Název<input id="newCompanyName" name="name" placeholder="doplní se z ARES nebo ručně"></label>
+        <label>Měna<select name="currency"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="USD">USD</option></select></label>
+        <button class="btn primary full" type="submit">Přidat firmu</button>
+      </form>
+    </section>
+  </aside>
+</div>
+<script>
+(function(){
+  const button=document.getElementById('aresLookupBtn');
+  const ico=document.getElementById('newCompanyIco');
+  const name=document.getElementById('newCompanyName');
+  const state=document.getElementById('aresLookupState');
+  if(!button) return;
+  button.addEventListener('click', async function(){
+    const value=(ico.value||'').replace(/\D/g,'');
+    if(!value){ state.textContent='Zadej IČO.'; state.className='ares-state error'; return; }
+    button.disabled=true; state.textContent='Ověřuji v ARES…'; state.className='ares-state';
+    try{
+      const response=await fetch('{{ url_for("web.companies_ares", ico="__ICO__") }}'.replace('__ICO__', encodeURIComponent(value)), {headers:{'Accept':'application/json'}});
+      const data=await response.json();
+      if(!response.ok || !data.ok) throw new Error(data.error || 'ARES dotaz se nepodařil.');
+      name.value=data.company.name || name.value;
+      ico.value=data.company.ico || value;
+      state.textContent=[data.company.name, data.company.address].filter(Boolean).join(' · ');
+      state.className='ares-state ok';
+    }catch(err){ state.textContent=err.message; state.className='ares-state error'; }
+    finally{ button.disabled=false; }
+  });
+})();
+</script>
+{% endblock %}

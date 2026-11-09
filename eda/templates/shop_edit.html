@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Upravit e-shop{% endblock %}
+{% block page_title %}E-shop · {{ shop.name }}{% endblock %}
+{% block content %}
+<div class="page-grid two">
+  <section class="panel form-panel">
+    <div class="panel-head"><div><span class="eyebrow dark">Fresh Core</span><h1>Nastavení e-shopu</h1></div><a href="{{ url_for('web.shop_detail', shop_id=shop.id) }}">Detail</a></div>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Název<input name="name" value="{{ shop.name }}" required></label>
+      <label>Platforma<select name="platform">{% for value,label in [('woocommerce','WooCommerce'),('shoptet','Shoptet'),('upgates','Upgates'),('other','Jiná')] %}<option value="{{ value }}" {{ 'selected' if shop.platform==value else '' }}>{{ label }}</option>{% endfor %}</select></label>
+      <label>URL<input type="url" name="site_url" value="{{ shop.site_url or '' }}"></label>
+      <label>Fresh Core manifest URL<input type="url" name="manifest_url" value="{{ connection.base_url or '' }}"><small>Sem vlož tajný manifest URL z Fresh Core daného webu.</small></label>
+      <label>Projekt<select name="project_id"><option value="">Bez projektu</option>{% for p in projects %}<option value="{{ p.id }}" {{ 'selected' if shop.project_id==p.id else '' }}>{{ p.name }}</option>{% endfor %}</select></label>
+      <label class="check"><input type="checkbox" name="active" value="1" {{ 'checked' if shop.active else '' }}> Aktivní</label>
+
+      <hr>
+      <span class="eyebrow dark">Accounting bridge</span>
+      <h2>Fakturační data pro Edu</h2>
+      <p class="muted-text">Citlivé fakturační údaje se načítají jen přes oddělené Fresh Core Accounting API. Accounting key je v Edovi uložen šifrovaně.</p>
+      <label>Accounting orders endpoint<input type="url" name="accounting_orders_endpoint" value="{{ accounting.orders_endpoint or '' }}" placeholder="https://web.cz/wp-json/fresh-core/v1/accounting/orders"><small>Nejlépe jej načti automaticky z manifestu.</small></label>
+      <label>Accounting key<input type="password" name="accounting_key" value="" autocomplete="new-password" placeholder="{{ 'Klíč je uložen – vyplň pouze při změně' if accounting.encrypted_key else 'Vlož Accounting key z Fresh Core' }}"><small>{{ 'Klíč je uložen.' if accounting.encrypted_key else 'Klíč zatím není uložen.' }}</small></label>
+      {% if accounting.encrypted_key %}<label class="check"><input type="checkbox" name="clear_accounting_key" value="1"> Smazat uložený Accounting key</label>{% endif %}
+      <button class="btn primary">Uložit</button>
+    </form>
+    <div class="welcome-actions" style="margin-top:14px">
+      <form method="post" action="{{ url_for('web.shop_test', shop_id=shop.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn secondary">Ověřit Fresh Core</button></form>
+      <form method="post" action="{{ url_for('web.shop_accounting_discover', shop_id=shop.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn secondary">Načíst Accounting API z manifestu</button></form>
+      <form method="post" action="{{ url_for('web.shop_accounting_test', shop_id=shop.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn secondary">Ověřit Accounting API</button></form>
+    </div>
+    <div class="status-strip" style="margin-top:14px">
+      <span class="pill">Accounting: {{ {'connected':'Připojeno','key_missing':'Chybí klíč','remote_disabled':'Vypnuto ve Fresh Core','not_tested':'Neověřeno','not_configured':'Nenastaveno','error':'Chyba'}.get(accounting.status, accounting.status) }}</span>
+      {% if accounting.plugin_version %}<span class="pill">Fresh Core {{ accounting.plugin_version }}</span>{% endif %}
+    </div>
+    {% if accounting.last_error %}<div class="notice warning" style="margin-top:12px">{{ accounting.last_error }}</div>{% endif %}
+  </section>
+  <aside class="panel danger-zone"><h2>Smazat / archivovat</h2><p>Pokud už e-shop obsahuje objednávky, Eda jej pouze archivuje, aby účetní historie nezmizela.</p><form method="post" action="{{ url_for('web.shop_delete', shop_id=shop.id) }}" onsubmit="return confirm('Opravdu odebrat tento e-shop?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn danger-btn">Odebrat e-shop</button></form></aside>
+</div>
+{% endblock %}

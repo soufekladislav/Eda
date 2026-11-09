@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% block title %}Eda · Pracovník{% endblock %}{% block page_title %}Eda – pracovník{% endblock %}
+{% block content %}
+<div class="worker-hero panel">
+  <div><span class="eyebrow">Zadej úkol</span><h1>Co mám udělat?</h1><p>Eda pracuje nad aktivní firmou <strong>{{ org.name }}</strong>. Čtecí kontroly může provést rovnou, zápisy do účetnictví zastaví před schválením.</p></div>
+  <form method="post" class="worker-prompt"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><textarea name="prompt" rows="4" placeholder="Např. Projeď e-shop FreshCrackers a zkontroluj všechny platby převodem v Abře s reálnými objednávkami v e-shopu."></textarea><button class="btn primary" type="submit">Předat Edovi</button></form>
+</div>
+<div class="preset-grid">
+{% for p in presets %}
+{% if p.code == 'create_invoice_request' %}<article class="preset-card"><strong>{{ p.name }}</strong><p>{{ p.description }}</p><a class="mini-action" href="{{ url_for('web.invoice_request') }}">Připravit fakturu</a></article>{% else %}<form class="preset-card" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="job_type" value="{{ p.code }}"><input type="hidden" name="prompt" value="{{ p.name }}"><strong>{{ p.name }}</strong><p>{{ p.description }}</p>{% if p.code == 'vat_review' %}<div class="inline-fields"><input type="number" name="month" min="1" max="12" value="{{ today.month }}"><input type="number" name="year" value="{{ today.year }}"></div>{% endif %}<button class="mini-action" type="submit">Spustit</button></form>{% endif %}
+{% endfor %}
+</div>
+<div class="panel"><div class="panel-head"><div><span class="eyebrow dark">Historie</span><h2>Práce Edy</h2></div></div><div class="job-list">{% for j in jobs %}<a class="job-row" href="{{ url_for('web.worker_job', job_id=j.id) }}"><div><strong>{{ j.title }}</strong><span>{{ j.created_at.strftime('%d.%m.%Y %H:%M') }} · {{ j.job_type }}</span></div><span class="job-status {{ j.status }}">{{ j.status }}</span></a>{% else %}<div class="empty">Zatím žádný úkol.</div>{% endfor %}</div></div>
+{% endblock %}

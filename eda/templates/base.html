@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Eda{% endblock %} · Fresh Crackers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="https://www.freshcrackers.cz/wp-content/uploads/2023/10/Fresh-Crackers-Logo.png">
+  <link rel="shortcut icon" type="image/png" href="https://www.freshcrackers.cz/wp-content/uploads/2023/10/Fresh-Crackers-Logo.png">
+  <link rel="apple-touch-icon" href="https://www.freshcrackers.cz/wp-content/uploads/2023/10/Fresh-Crackers-Logo.png">
+  <meta name="theme-color" content="#9EC415">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css', v='074') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/system.css', v='080') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+{% if current_user.is_authenticated %}
+<div class="mobile-nav-overlay" id="mobileNavOverlay" aria-hidden="true"></div>
+<div class="app-shell">
+  <aside class="sidebar" id="appSidebar" aria-label="Hlavní navigace">
+    <a class="brand" href="{{ url_for('web.dashboard') }}">
+      <img src="https://www.freshcrackers.cz/wp-content/uploads/2023/10/Fresh-Crackers-Logo.png" alt="Fresh Crackers">
+      <span><strong>EDA</strong><small>by Fresh Crackers</small></span>
+    </a>
+    {% if current_user.memberships|length > 1 %}
+    <details class="sidebar-org-switch">
+      <summary><span>Aktivní firma</span><strong>{{ org.name if org else 'Firma' }}</strong></summary>
+      <div>
+        {% for m in current_user.memberships %}
+        <form method="post" action="{{ url_for('web.organization_switch', organization_id=m.organization_id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="{{ 'active' if org and m.organization_id == org.id else '' }}">{{ m.organization.name }}</button>
+        </form>
+        {% endfor %}
+      </div>
+    </details>
+    {% endif %}
+    <nav>
+      <a class="{{ 'active' if request.endpoint == 'web.dashboard' else '' }}" href="{{ url_for('web.dashboard') }}">Přehled</a>
+      <a class="{{ 'active' if request.endpoint in ['web.chat','web.chat_new','web.chat_attachment'] else '' }}" href="{{ url_for('web.chat') }}">Chat s Edou</a>
+      <a class="{{ 'active' if request.endpoint == 'web.planner' else '' }}" href="{{ url_for('web.planner') }}">Plánovač</a>
+      <a class="{{ 'active' if request.endpoint == 'web.finance' else '' }}" href="{{ url_for('web.finance') }}">Příjmy a náklady</a>
+      <a class="{{ 'active' if request.endpoint in ['web.projects','web.project_detail','web.project_edit'] else '' }}" href="{{ url_for('web.projects') }}">Projekty</a>
+      <a class="{{ 'active' if request.endpoint in ['web.shops','web.shop_detail','web.shop_edit'] else '' }}" href="{{ url_for('web.shops') }}">E-shopy</a>
+      <a class="{{ 'active' if request.endpoint in ['web.documents','web.document_detail','web.document_file'] else '' }}" href="{{ url_for('web.documents') }}">Doklady</a>
+      <a class="{{ 'active' if request.endpoint == 'web.standards_library' else '' }}" href="{{ url_for('web.standards_library') }}">Účetní báze</a>
+      {% set ns = namespace(company_admin=current_user.is_admin) %}
+      {% if org %}{% for m in current_user.memberships %}{% if m.organization_id == org.id and m.role in ['owner','admin'] %}{% set ns.company_admin = true %}{% endif %}{% endfor %}{% endif %}
+      <details class="eda-nav-group" {% if request.endpoint in ['web.companies','web.companies_ares','web.integrations','eda_admin_tools.company_access'] %}open{% endif %}>
+        <summary>Nastavení firem <span aria-hidden="true">⌄</span></summary>
+        <div class="eda-nav-children">
+          <a class="{{ 'active' if request.endpoint in ['web.companies','web.companies_ares'] else '' }}" href="{{ url_for('web.companies') }}">Údaje firem</a>
+          <a class="{{ 'active' if request.endpoint == 'web.integrations' else '' }}" href="{{ url_for('web.integrations') }}">Integrace</a>
+          {% if ns.company_admin %}<a class="{{ 'active' if request.endpoint == 'eda_admin_tools.company_access' else '' }}" href="{{ url_for('eda_admin_tools.company_access') }}">Přístupy k projektům</a>{% endif %}
+        </div>
+      </details>
+      {% if current_user.is_admin %}
+      <details class="eda-nav-group" {% if request.endpoint in ['eda_admin_tools.center','web.admin_console'] %}open{% endif %}>
+        <summary>Správa systému <span aria-hidden="true">⌄</span></summary>
+        <div class="eda-nav-children">
+          <a class="{{ 'active' if request.endpoint == 'eda_admin_tools.center' else '' }}" href="{{ url_for('eda_admin_tools.center') }}">Superadmin</a>
+          <a class="{{ 'active' if request.endpoint == 'web.admin_console' else '' }}" href="{{ url_for('web.admin_console') }}">Diagnostika (původní)</a>
+        </div>
+      </details>
+      {% endif %}
+    </nav>
+    <a class="eda-worker-card" href="{{ url_for('web.chat') }}" aria-label="Otevřít chat s Edou">
+      <span class="eda-worker-card-photo" aria-hidden="true"></span>
+      <span class="eda-worker-card-copy"><strong>Eda</strong><small>Tvůj finanční pracovník</small><em>Napsat úkol →</em></span>
+    </a>
+    <div class="sidebar-foot">
+      <div class="user-mini"><strong>{{ current_user.display_name }}</strong><span>{{ current_user.email }}</span></div>
+      <form action="{{ url_for('web.logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link-btn" type="submit">Odhlásit se</button></form>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="Otevřít menu" aria-controls="appSidebar" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="topbar-title"><strong>{% block page_title %}Eda{% endblock %}</strong><small>{% if org %}{{ org.name }}{% endif %}</small></div>
+      </div>
+      <div class="topbar-right">
+      <details class="notification-menu">
+        <summary aria-label="Upozornění"><span class="notification-bell">●</span>{% if eda_notification_count %}<b>{{ eda_notification_count }}</b>{% endif %}</summary>
+        <div class="notification-popover">
+          <div class="notification-head"><strong>Upozornění</strong><a href="{{ url_for('web.planner') if org else url_for('web.projects') }}">{{ 'Plánovač' if org else 'Projekty' }}</a></div>
+          {% for n in eda_shop_alerts %}
+          <a class="notification-item danger" href="{{ url_for('web.shop_detail', shop_id=n.shop_id) }}"><strong>Objednávka #{{ n.external_order_id }} – kontrola</strong><span>Automatizace: {{ n.error or 'nutné prověřit' }}</span></a>
+          {% endfor %}
+          {% for n in eda_link_notifications %}
+          <a class="notification-item" href="{{ url_for('web.project_detail', project_id=n.target_external_project_id) if n.target_external_project_id else url_for('web.projects') }}"><strong>Návrh propojení projektu</strong><span>{{ n.requester.email or 'Uživatel Fresh AI' }} · {{ n.link_name }} · {{ n.target_app_label }}</span></a>
+          {% endfor %}
+          {% for n in eda_notifications %}
+          <a class="notification-item {{ 'danger' if n.overdue else '' }}" href="{{ url_for('web.dashboard') }}#attention"><strong>{{ n.task.title }}</strong><span>{% if n.overdue %}po termínu {{ -n.days }} d.{% elif n.today %}dnes{% else %}za {{ n.days }} d.{% endif %} · {{ n.task.due_date.strftime('%d.%m.%Y') }}</span></a>
+          {% endfor %}
+          {% if not eda_link_notifications and not eda_notifications and not eda_shop_alerts %}<div class="notification-empty">Nic akutního.</div>{% endif %}
+        </div>
+      </details>
+      {% if org %}<a class="eda-org-chat-link" href="{{ url_for('web.chat') }}" title="Otevřít chat s Edou pro firmu {{ org.name }}">{{ org.name }} · chat s Edou</a>{% endif %}
+      {% if current_user.memberships|length > 1 %}<details class="org-switch"><summary aria-label="Přepnout firmu">▾</summary><div>{% for m in current_user.memberships %}<form method="post" action="{{ url_for('web.organization_switch', organization_id=m.organization_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">{{ m.organization.name }}</button></form>{% endfor %}</div></details>{% endif %}
+      <div class="topbar-badge">Finance pod kontrolou</div></div>
+    </header>
+    <section class="content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}<div class="flash-stack">{% for category,message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </section>
+  </main>
+</div>
+{% else %}
+{% block public_content %}{% endblock %}
+{% endif %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Přihlášení do Edy{% endblock %}
+{% block public_content %}
+<div class="login-page">
+  <div class="login-hero">
+    <div class="login-overlay">
+      <div class="login-brand" aria-label="Fresh Crackers">
+        <span class="login-brand-icon">
+          <span class="login-brand-fallback">FC</span>
+          <img src="https://www.freshcrackers.cz/wp-content/uploads/2023/10/Fresh-Crackers-Logo.png" alt="">
+        </span>
+        <span class="login-brand-copy"><strong>FRESH<br>CRACKERS</strong><small>Fresh AI ecosystem</small></span>
+      </div>
+
+      <div class="hero-copy">
+        <span class="eyebrow">Eda · finanční pracovník</span>
+        <h1>Eda drží pořádek<br>ve vašich financích.</h1>
+        <p>Kontroluje data, hlídá termíny, hledá nesrovnalosti a pomáhá dotahovat finanční a účetní úkoly do konce.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-panel">
+    <div class="login-card login-card-wide">
+      <div class="eda-mark">EDA</div>
+      <h2>Přihlásit se</h2>
+      <p>Pokračujte do svého finančního přehledu a chatu s Edou.</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category,message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>E-mail<input name="email" type="email" autocomplete="username" required></label>
+        <label>Heslo<input name="password" type="password" autocomplete="current-password" required></label>
+        <label class="check"><input type="checkbox" name="remember" value="1"> Zapamatovat si mě</label>
+        <button class="btn primary full" type="submit">Přihlásit se</button>
+      </form>
+
+      {% if sso_url %}
+        <div class="divider"><span>nebo</span></div>
+        <a class="btn secondary full" href="{{ sso_url }}">Přihlásit účtem Fresh Crackers</a>
+      {% endif %}
+
+      <section class="login-workflow" aria-label="Jak Eda pracuje">
+        <div class="login-workflow-head">
+          <div>
+            <span class="eyebrow dark">Jak Eda pracuje</span>
+            <h3>Od zadání až k hotové práci.</h3>
+          </div>
+          <span class="login-worker-badge">AI pracovník</span>
+        </div>
+
+        <div class="login-workflow-grid">
+          <div class="login-workflow-step">
+            <span class="step-number">01</span>
+            <div><strong>Zadáš úkol</strong><p>Napiš Edovi, co má zkontrolovat, nebo přilož účtenku či fakturu.</p></div>
+          </div>
+          <div class="login-workflow-step">
+            <span class="step-number">02</span>
+            <div><strong>Zkontroluje data</strong><p>Porovná e-shop, Abra Flexi, platby, doklady, projekty a termíny.</p></div>
+          </div>
+          <div class="login-workflow-step">
+            <span class="step-number">03</span>
+            <div><strong>Navrhne řešení</strong><p>Ukáže nesrovnalosti, doporučí zařazení a připraví další krok.</p></div>
+          </div>
+          <div class="login-workflow-step">
+            <span class="step-number">04</span>
+            <div><strong>Provede</strong><p>Po schválení zapíše položku, připraví fakturu nebo účetní požadavek.</p></div>
+          </div>
+        </div>
+
+        <div class="login-capabilities">
+          <span>Platby × objednávky</span>
+          <span>Doklady a náklady</span>
+          <span>DPH a kontrolní hlášení</span>
+          <span>Profitabilita projektů</span>
+        </div>
+        <p class="login-approval-note"><b>Ty máš kontrolu.</b> Zápisové kroky Eda nejdřív připraví a u citlivých operací si vyžádá schválení.</p>
+      </section>
+
+      <small class="security-note">Eda · Fresh Crackers</small>
+    </div>
+  </div>
+</div>
+{% endblock %}

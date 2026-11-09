@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% block title %}Projekty{% endblock %}{% block page_title %}Projekty a profitabilita{% endblock %}
+{% block content %}
+{% if fresh_key_requests %}
+<section class="panel" style="margin-bottom:18px"><div class="panel-head"><div><span class="eyebrow dark">Fresh Key</span><h2>Návrhy propojení</h2><p>Propojení nebo nový projekt se provede až po potvrzení tady v Edovi.</p></div></div>
+{% for req in fresh_key_requests if not req.target_external_project_id %}
+<div class="linking-member-row"><div><strong>{{ req.link_name }}</strong><small>{{ req.requester.email or 'Uživatel Fresh AI' }} navrhuje vytvořit nový propojený projekt v Edovi.</small></div><div class="linking-member-actions"><form method="post" action="{{ url_for('web.fresh_key_link_request_create', request_id=req.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input name="name" value="{{ req.target_project_name or req.link_name }}" required><select name="project_type"><option value="construction">Stavební projekt</option><option value="eshop">E-shop</option><option value="service">Služba</option><option value="other" selected>Ostatní</option></select><button class="btn primary" type="submit">Potvrdit a vytvořit</button></form><form method="post" action="{{ url_for('web.fresh_key_link_request_decline') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="request_id" value="{{ req.id }}"><button class="btn secondary" type="submit">Odmítnout</button></form></div></div>
+{% endfor %}
+</section>
+{% endif %}
+<div class="page-grid two">
+<section class="panel"><div class="panel-head"><div><span class="eyebrow dark">Profitabilita</span><h1>Projekty</h1></div></div>
+<div class="project-cards">
+{% for p in items %}<article class="project-card clickable-card">
+  <a class="card-main-link" href="{{ url_for('web.project_detail', project_id=p.id) }}"><strong>{{ p.name }}</strong><span>{{ p.code or p.project_type }}{% if not p.active %} · archivovaný{% endif %}</span></a>
+  <div class="project-metrics"><span>Objednávky <b>{{ stats[p.id].order_total|money }}</b></span><span>Vyfakturováno <b>{{ stats[p.id].invoiced_total|money }}</b></span><span>Náklady <b>{{ stats[p.id].known_cost_total|money }}</b></span><span>Oček. výsledek <b class="green">{{ stats[p.id].expected_profit|money }}</b></span>{% if stats[p.id].uninvoiced_total > 0 %}<span class="project-alert">K fakturaci <b>{{ stats[p.id].uninvoiced_total|money }}</b></span>{% endif %}</div>
+  <div class="row-actions"><a class="mini-action" href="{{ url_for('web.project_detail', project_id=p.id) }}">Detail</a>{% if project_roles[p.id] in ['manager','owner'] %}<a class="mini-action" href="{{ url_for('web.project_edit', project_id=p.id) }}">Upravit</a>{% endif %}</div>
+</article>{% else %}<div class="empty eda-project-empty"><div class="eda-project-empty-photo" aria-hidden="true"></div><strong>Začni prvním projektem.</strong><span>Projekt je základní jednotka, ke které Eda přiřazuje doklady, náklady, příjmy a objednávky.</span></div>{% endfor %}
+</div></section>
+{% if can_create %}<aside class="panel form-panel"><h2>Nový projekt</h2><form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Název<input name="name" required></label><label>Kód<input name="code"></label><label>Typ<select name="project_type"><option value="construction">Stavební projekt</option><option value="eshop">E-shop</option><option value="service">Služba</option><option value="other">Ostatní</option></select></label><button class="btn primary full">Přidat projekt</button></form></aside>{% endif %}
+</div>{% endblock %}

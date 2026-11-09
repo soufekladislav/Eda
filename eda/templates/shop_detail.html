@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ shop.name }}{% endblock %}
+{% block page_title %}E-shop · {{ shop.name }}{% endblock %}
+{% block content %}
+<div class="welcome-row">
+  <div><span class="eyebrow dark">{{ shop.platform }}</span><h1>{{ shop.name }}</h1><p class="muted-text">{{ shop.site_url or 'URL není nastavena' }}{% if shop.project %} · {{ shop.project.name }}{% endif %}</p></div>
+  <div class="welcome-actions">
+    <form method="post" action="{{ url_for('web.shop_test', shop_id=shop.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn secondary">Ověřit konektivitu</button></form>
+    {% if connection and connection.base_url %}<form method="post" action="{{ url_for('web.shop_sync', shop_id=shop.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary">Synchronizovat</button></form>{% endif %}
+    <a class="btn secondary" href="{{ url_for('eda_invoicing.invoice_setup', shop_id=shop.id) }}">Fakturační nastavení</a>
+    <a class="btn secondary" href="{{ url_for('web.shop_edit', shop_id=shop.id) }}">Upravit e-shop</a>
+  </div>
+</div>
+<div class="kpi-grid">
+  <article class="kpi"><span>Objednávky v zobrazení</span><strong>{{ orders|length }}</strong></article>
+  <article class="kpi"><span>Hodnota zobrazených objednávek</span><strong>{{ total|money }}</strong><small>Nejde o přijaté platby. Zahrnuje i stornované stavy.</small></article>
+  <article class="kpi {{ 'profit' if accounting and accounting.status == 'connected' else 'attention' }}"><span>Accounting API</span><strong class="small-kpi">{{ 'Připojeno' if accounting and accounting.status == 'connected' else 'Nepřipojeno' }}</strong></article>
+  <article class="kpi {{ 'profit' if connection and connection.status in ['connected','sync_ready'] else 'attention' }}"><span>Fresh Core</span><strong class="small-kpi">{{ 'Připraveno' if connection and connection.status in ['connected','sync_ready'] else 'Neověřeno' }}</strong></article>
+</div>
+{% if not accounting or accounting.status != 'connected' %}<div class="notice warning">Pro fakturaci je potřeba připojit Fresh Core Accounting API v nastavení e-shopu.</div>{% endif %}
+<section class="panel">
+  <div class="panel-head"><div><span class="eyebrow dark">E-shop · objednávky</span><h2>Objednávky a fakturace</h2></div><a href="{{ url_for('web.documents', direction='issued') }}">Všechny vystavené doklady</a></div>
+  <p class="muted-text">Stav dokladu je z evidence Edy, nikoli ze stavu objednávky WooCommerce. Zálohovou výzvu budeme evidovat odděleně; dosud vystavená není.</p>
+  <div class="status-strip">{% for status,count in by_status.items() %}<span class="pill">{{ status or 'bez stavu' }} · {{ count }}</span>{% endfor %}</div>
+  <div class="table-wrap"><table><thead><tr><th>Objednávka</th><th>Datum</th><th>Woo stav</th><th>Zákazník</th><th>Fakturace</th><th class="right">Celkem</th><th>Akce</th></tr></thead><tbody>
+    {% for o in orders %}{% set doc = invoice_by_order.get(o.id) %}{% set advance = advance_by_order.get(o.id) %}
+      <tr>
+        <td><a href="{{ url_for('web.shop_order_detail', shop_id=shop.id, order_id=o.id) }}"><strong>#{{ o.external_id }}</strong></a></td>
+        <td>{{ o.ordered_at.strftime('%d.%m.%Y %H:%M') if o.ordered_at else '—' }}</td>
+        <td>{{ {'on-hold':'Čeká na zaplacení','pending':'Čeká na platbu','processing':'Zpracovává se','completed':'Dokončeno','cancelled':'Zrušeno','refunded':'Vráceno'}.get(o.status, o.status or '—') }}</td>
+        <td>{{ customer_by_order.get(o.id) or 'Údaje až v detailu' }}</td>
+        <td>
+          {% if doc %}<span class="status {{ 'ok' if doc.publish_status == 'published' else 'off' }}">Faktura {{ doc.invoice.number }}</span><small style="display:block">{{ 'Odkaz předán do Woo' if doc.publish_status == 'published' else 'Odkaz čeká na předání' }}</small>
+          {% elif advance %}<span class="status off">Záloha {{ advance.number }}</span><small style="display:block">{{ 'Odkaz předán do Woo' if advance.publish_status == 'published' else 'Čeká na zveřejnění' }}</small>
+          {% elif o.status in ['on-hold', 'pending'] %}<span class="status off">Bez dokladu</span><small style="display:block">Zálohová výzva pro převod</small>
+          {% else %}<span class="status off">Nevystaveno</span>{% endif %}
+        </td>
+        <td class="right">{{ o.total|money }}</td>
+        <td>
+          {% if doc %}<a class="mini-action" href="{{ url_for('web.shop_order_detail', shop_id=shop.id, order_id=o.id) }}">Doklad</a>
+          {% elif can_issue and accounting and accounting.status == 'connected' and o.status in ['pending','on-hold'] %}
+          <a class="mini-action" href="{{ url_for('web.shop_order_detail',shop_id=shop.id,order_id=o.id) }}">Záloha / detail</a>
+          {% elif can_issue and accounting and accounting.status == 'connected' and o.status in ['processing','completed'] %}
+          <form method="post" action="{{ url_for('eda_invoicing.issue_invoice', shop_id=shop.id, order_id=o.id) }}" onsubmit="return confirm('Vystavit pro objednávku #{{ o.external_id }} konečnou fakturu? Závazně se přidělí číslo dokladu.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="mini-action">Fakturovat</button>
+          </form>
+          {% else %}<a class="mini-action" href="{{ url_for('web.shop_order_detail', shop_id=shop.id, order_id=o.id) }}">Detail</a>{% endif %}
+        </td>
+      </tr>
+    {% else %}<tr><td colspan="7">Žádné synchronizované objednávky.</td></tr>{% endfor %}
+  </tbody></table></div>
+  <p class="muted-text" style="margin-top:12px">Rychlá fakturace je ruční a načítá aktuální fakturační údaje z WooCommerce. Zálohové výzvy a automatické vystavování po změně stavu Woo zapneme až po pilotním ověření.</p>
+</section>
+{% endblock %}

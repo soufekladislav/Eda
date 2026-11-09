@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Chat s Edou{% endblock %}
+{% block page_title %}Eda{% endblock %}
+{% block content %}
+<div class="chat-page">
+  <div class="chat-head">
+    <div>
+      <h1>Co pro tebe mám udělat?</h1>
+      <p>Pracuji s firmou <strong>{{ org.name }}</strong>. Můžeš mi napsat úkol nebo přiložit doklad.</p>
+    </div>
+    <div class="chat-head-actions">
+      <details class="chat-history">
+        <summary>Historie</summary>
+        <div class="chat-history-menu">
+          {% for item in conversations %}
+            <a class="{{ 'active' if item.id == conversation.id else '' }}" href="{{ url_for('web.chat', conversation=item.id) }}">
+              <span>{{ item.title }}</span><small>{{ item.updated_at.strftime('%d.%m. %H:%M') }}</small>
+            </a>
+          {% else %}
+            <span class="muted">Zatím bez historie.</span>
+          {% endfor %}
+        </div>
+      </details>
+      <form action="{{ url_for('web.chat_new') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-ghost" type="submit">+ Nový chat</button>
+      </form>
+    </div>
+  </div>
+
+  {% if guide_state.project_count == 0 or not guide_state.company_ares_verified or guide_state.upcoming_reminders or guide_state.unassigned_documents %}
+  <div class="eda-guide-strip">
+    <div class="eda-guide-photo" aria-hidden="true"></div>
+    <div class="eda-guide-copy">
+      <span class="eyebrow dark">Eda doporučuje</span>
+      {% if guide_state.upcoming_reminders %}
+        {% set r=guide_state.upcoming_reminders[0] %}<strong>{{ r.title }}</strong><p>Blíží se termín {{ r.due_date }}. {% if r.days < 0 %}Povinnost je po termínu.{% elif r.days == 0 %}Termín je dnes.{% else %}Zbývá {{ r.days }} dny.{% endif %}</p>
+      {% elif guide_state.unassigned_documents %}
+        <strong>{{ guide_state.unassigned_documents }} dokladů čeká na projekt.</strong><p>Přiřaď je k projektu a Eda je připraví k zaúčtování a zahrne do projektových nákladů.</p>
+      {% elif guide_state.project_count == 0 %}
+        <strong>Nejdřív založ první projekt.</strong>
+        <p>Pak k němu můžu přiřazovat účtenky, nákladové faktury, příjmy a sledovat jeho skutečnou profitabilitu.</p>
+      {% elif not guide_state.company_ares_verified %}
+        <strong>Ověř údaje firmy v ARES.</strong>
+        <p>Budu pak pracovat s ověřeným názvem, IČO, DIČ a sídlem firmy.</p>
+      {% endif %}
+    </div>
+    <div class="eda-guide-actions">
+      {% if guide_state.upcoming_reminders %}<a class="btn primary" href="{{ url_for('web.tasks') }}">Zobrazit termíny</a>{% elif guide_state.unassigned_documents %}<a class="btn primary" href="{{ url_for('web.documents') }}">Zpracovat doklady</a>{% elif guide_state.project_count == 0 %}<a class="btn primary" href="{{ url_for('web.projects') }}">Založit projekt</a>{% endif %}
+      {% if not guide_state.company_ares_verified %}<a class="btn secondary" href="{{ url_for('web.companies') }}">Nastavení firmy</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="chat-thread" id="chatThread">
+    {% if not messages %}
+      <div class="chat-empty">
+        <div class="chat-avatar eda-photo" aria-hidden="true"></div>
+        <h2>Ahoj, jsem Eda.</h2>
+        <p>Zkus třeba: „Zkontroluj platby převodem ve FreshCrackers proti Abře“ nebo mi nahraj účtenku a napiš, co s ní potřebuješ.</p>
+      </div>
+    {% endif %}
+
+    {% for message in messages %}
+      <article class="chat-message {{ message.role }} {{ 'error' if message.status == 'error' else '' }}">
+        <div class="chat-message-avatar {{ 'assistant-avatar' if message.role == 'assistant' else '' }}">{{ 'Ty' if message.role == 'user' else '' }}</div>
+        <div class="chat-message-body">
+          {% if message.content %}<div class="chat-message-text">{{ message.content }}</div>{% endif %}
+          {% if message.attachments %}
+            <div class="chat-attachments">
+              {% for attachment in message.attachments %}
+                <a class="chat-attachment" href="{{ url_for('web.chat_attachment', attachment_id=attachment.id) }}" target="_blank" rel="noopener">
+                  <span>📎</span><span>{{ attachment.original_name }}</span><small>{{ (attachment.size_bytes / 1024)|round|int }} kB</small>
+                  {% if attachment.status == 'text_extracted' %}<span class="chat-attachment-state">text načten</span>{% endif %}
+                  {% if attachment.status == 'needs_vision' %}<span class="chat-attachment-state vision">vision</span>{% endif %}
+                  {% if attachment.status in ['extract_error','encrypted_pdf'] %}<span class="chat-attachment-state error">nelze přečíst</span>{% endif %}
+                </a>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if message.role == 'assistant' and message.status == 'error' and message.error %}
+            <details class="chat-error-detail"><summary>Technický detail</summary><code>{{ message.error }}</code></details>
+          {% endif %}
+          {% if current_user.is_admin and message.role == 'assistant' and (message.engine_model or message.engine_run_id) %}
+            <div class="chat-tech">
+              {% if message.engine_provider %}{{ message.engine_provider }}{% endif %}
+              {% if message.engine_model %} · {{ message.engine_model }}{% endif %}
+              {% if message.latency_ms %} · {{ message.latency_ms }} ms{% endif %}
+              {% if message.engine_run_id %} · run {{ message.engine_run_id }}{% endif %}
+            </div>
+          {% endif %}
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+
+  <div id="edaChatWorking" class="eda-chat-working" role="status" aria-live="polite" hidden><span class="eda-chat-spinner" aria-hidden="true"></span>Eda zpracovává požadavek. Odpověď se zobrazí po dokončení.</div>
+  <form class="chat-composer" method="post" enctype="multipart/form-data" id="chatForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="chat-file-preview" id="filePreview"></div>
+    <div class="chat-compose-row">
+      <label class="chat-attach-button" title="Přiložit soubor">
+        <span>＋</span>
+        <input id="chatFiles" type="file" name="attachments" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.txt,.csv,.json,.md,application/pdf,image/jpeg,image/png,image/webp,text/plain,text/csv,application/json">
+      </label>
+      <textarea id="chatPrompt" name="prompt" rows="1" placeholder="Napiš Edovi úkol…"></textarea>
+      <button class="chat-send" type="submit" aria-label="Odeslat">➜</button>
+    </div>
+    <div class="chat-hint">PDF s textem Eda přečte přímo · skeny a fotografie předává vision vrstvě Enginu · zápisy do účetnictví zůstávají pod schválením</div>
+  </form>
+</div>
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+{% endblock %}

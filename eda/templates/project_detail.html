@@ -1,0 +1,91 @@
+{% extends "base.html" %}{% block title %}{{ project.name }}{% endblock %}{% block page_title %}Projekt · {{ project.name }}{% endblock %}
+{% block content %}
+<div class="welcome-row"><div><span class="eyebrow dark">{{ project.project_type }} · {{ project.code or 'bez kódu' }}</span><h1>{{ project.name }}</h1></div><div class="welcome-actions">{% if can_manage_project %}<a class="btn secondary" href="{{ url_for('web.project_edit', project_id=project.id) }}">Upravit</a>{% endif %}{% if can_access_org %}<a class="btn primary" href="{{ url_for('web.documents') }}">+ Doklad</a>{% endif %}</div></div>
+<div class="kpi-grid">
+  <article class="kpi"><span>Objednávky</span><strong>{{ financial.order_total|money }}</strong><small>{{ orders|length }} objednávek · uhrazeno v e-shopu {{ financial.paid_order_total|money }}</small></article>
+  <article class="kpi"><span>Vyfakturováno</span><strong>{{ financial.invoiced_total|money }}</strong><small>k fakturaci zbývá {{ financial.uninvoiced_total|money }}</small></article>
+  <article class="kpi"><span>Náklady</span><strong>{{ financial.known_cost_total|money }}</strong><small>zaúčtováno {{ financial.expense|money }} · čeká {{ financial.pending_doc_total|money }}</small></article>
+  <article class="kpi profit"><span>Očekávaný výsledek</span><strong>{{ financial.expected_profit|money }}</strong><small>objednávky − známé náklady</small></article>
+</div>
+<div class="status-strip project-status-strip">
+  <span class="status ok">Uhrazeno dle e-shopu {{ financial.paid_order_total|money }}</span>
+  {% if financial.uninvoiced_total > 0 %}<span class="status warn">Nevyfakturováno {{ financial.uninvoiced_total|money }}</span>{% endif %}
+  {% if financial.pending_doc_total > 0 %}<span class="status warn">Doklady nezaúčtované {{ financial.pending_doc_total|money }}</span>{% endif %}
+  <span class="status neutral">Účetně zaúčtovaný výsledek {{ financial.accounting_profit|money }}</span>
+</div>
+<div class="dashboard-grid">
+<section class="panel"><div class="panel-head"><div><span class="eyebrow dark">Finance</span><h2>Zaúčtované příjmy a náklady</h2></div><a href="{{ url_for('web.finance') }}">Evidence</a></div><div class="table-wrap"><table><thead><tr><th>Datum</th><th>Typ</th><th>Popis</th><th class="right">Částka</th></tr></thead><tbody>{% for x in transactions %}<tr><td>{{ x.booked_on.strftime('%d.%m.%Y') }}</td><td><span class="pill {{ x.kind }}">{{ 'Příjem' if x.kind=='income' else 'Náklad' }}</span></td><td>{{ x.description or x.category or '—' }}</td><td class="right">{{ x.amount|money }}</td></tr>{% else %}<tr><td colspan="4">Projekt zatím nemá zaúčtované transakce. Obchodní hodnotu sledujeme samostatně z objednávek.</td></tr>{% endfor %}</tbody></table></div></section>
+<section class="panel"><div class="panel-head"><div><span class="eyebrow dark">Doklady</span><h2>Faktury a účtenky</h2></div><a href="{{ url_for('web.documents') }}">Inbox</a></div><div class="compact-list">{% for d in documents %}<a class="compact-row" href="{{ url_for('web.document_detail', document_id=d.id) }}"><span><strong>{{ d.original_name }}</strong><small>{{ d.document_type or d.status }}</small></span><b>{{ d.status }}</b></a>{% else %}<div class="empty">Žádné doklady.</div>{% endfor %}</div></section>
+<section class="panel"><div class="panel-head"><div><span class="eyebrow dark">E-shopy</span><h2>Objednávky projektu</h2></div><span class="panel-summary">{{ financial.order_total|money }}</span></div><div class="table-wrap"><table><thead><tr><th>E-shop</th><th>Objednávka</th><th>Woo stav</th><th>Fakturace</th><th>Platba</th><th>Datum</th><th class="right">Celkem</th></tr></thead><tbody>{% for row in financial.order_rows[:200] %}{% set o = row.order %}<tr><td><a href="{{ url_for('web.shop_detail', shop_id=o.shop_id) }}">{{ o.shop.name }}</a></td><td><a class="order-link" href="{{ url_for('web.shop_order_detail', shop_id=o.shop_id, order_id=o.id) }}">#{{ o.external_id }}</a></td><td>{{ o.status or '—' }}</td><td><span class="pill invoice-{{ row.invoice_class }}">{{ row.invoice_state }}</span></td><td><span class="pill {{ 'done' if row.paid else 'payment-open' }}">{{ row.payment_state }}</span></td><td>{{ o.ordered_at.strftime('%d.%m.%Y') if o.ordered_at else '—' }}</td><td class="right">{{ o.total|money }}</td></tr>{% else %}<tr><td colspan="7">Projekt zatím nemá objednávky.</td></tr>{% endfor %}</tbody></table>{% if financial.order_rows|length > 200 %}<div class="table-note">Zobrazeno posledních 200 z {{ financial.order_rows|length }} objednávek. Souhrny nahoře počítají všechny.</div>{% endif %}</div></section>
+<section class="panel"><div class="panel-head"><div><span class="eyebrow dark">Účetnictví</span><h2>Faktury projektu</h2></div></div><div class="table-wrap"><table><thead><tr><th>Číslo</th><th>Směr</th><th>Splatnost</th><th>Stav</th><th class="right">Celkem</th></tr></thead><tbody>{% for i in invoices %}<tr><td>{{ i.number or i.external_id }}</td><td>{{ 'Vydaná' if i.direction=='issued' else 'Přijatá' }}</td><td>{{ i.due_on.strftime('%d.%m.%Y') if i.due_on else '—' }}</td><td>{{ 'Uhrazená' if i.paid else 'Neuhrazená' }}</td><td class="right">{{ i.total|money }}</td></tr>{% else %}<tr><td colspan="5">Projekt zatím nemá faktury. Nevyfakturované objednávky jsou označené v přehledu vlevo.</td></tr>{% endfor %}</tbody></table></div></section>
+</div>
+<section class="panel linking-panel">
+  <div class="panel-head">
+    <div>
+      <span class="eyebrow dark">Projekt</span>
+      <h2>Propojení <span class="linking-info" title="Fresh Key je bezplatná spojovací vrstva Fresh ekosystému. Propojí stejný projekt mezi Edou, Lindou, Bobanem, Karlem a dalšími aplikacemi. Data i oprávnění zůstávají v konkrétní aplikaci a Fresh Key nevyžaduje kredity.">i</span></h2>
+      <p>Fresh Key propojuje stejný projekt napříč Fresh aplikacemi. Základní obsluha, role a účetní data zůstávají vždy v Edovi.</p>
+    </div>
+  </div>
+
+  <div class="notice">
+    <strong>Jak fungují role?</strong><br>
+    <strong>Vlastník</strong> má plnou správu projektu. <strong>Správce</strong> může upravovat, schvalovat, sdílet projekt a měnit Propojení.
+    <strong>Editor</strong> může pracovat, upravovat a schvalovat, ale nespravuje lidi ani Fresh Key. <strong>Čtenář</strong> pouze prohlíží.
+    Označení <em>Člen týmu / Klient / Agentura</em> vyjadřuje vztah k projektu, nikoli oprávnění.
+  </div>
+
+  <h3>Lidé na projektu</h3>
+  <div class="linking-members">
+    {% for m in project_people %}
+    <div class="linking-member-row">
+      <div>
+        <strong>{{ m.name or m.email }}</strong>
+        <small>{{ m.email }} · {{ m.role_label or m.role }} · {{ m.relationship_label or m.relationship }}{% if m.status=='pending' %} · čeká na přijetí pozvánky{% endif %}{% if m.organization_member %} · člen firmy{% endif %}</small>
+      </div>
+      {% if can_manage_project and not m.organization_member %}
+      <div class="linking-member-actions">
+        <form method="post" action="{{ url_for('web.project_linking_member_update', project_id=project.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="email" value="{{ m.email }}">
+          <select name="role"><option value="manager" {{ 'selected' if m.role=='manager' }}>Správce</option><option value="editor" {{ 'selected' if m.role=='editor' }}>Editor</option><option value="viewer" {{ 'selected' if m.role=='viewer' }}>Čtenář</option></select>
+          <select name="relationship"><option value="member" {{ 'selected' if m.relationship=='member' }}>Člen týmu</option><option value="client" {{ 'selected' if m.relationship=='client' }}>Klient</option><option value="agency" {{ 'selected' if m.relationship=='agency' }}>Agentura</option></select>
+          <button class="btn secondary" type="submit">Uložit</button>
+        </form>
+        <form method="post" action="{{ url_for('web.project_linking_member_remove', project_id=project.id) }}" onsubmit="return confirm('Odebrat uživatele nebo pozvánku z projektu?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="email" value="{{ m.email }}"><button class="btn secondary" type="submit">Odebrat</button></form>
+      </div>
+      {% else %}<span class="status neutral">{{ m.role_label or m.role }}</span>{% endif %}
+    </div>
+    {% else %}<div class="empty">Projekt zatím není s nikým sdílený.</div>{% endfor %}
+  </div>
+  {% if can_manage_project %}
+  <form class="linking-add-form" method="post" action="{{ url_for('web.project_linking_member_add', project_id=project.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>E-mail<input type="email" name="email" placeholder="kolega@firma.cz" required></label>
+    <label>Role<select name="role"><option value="editor" selected>Editor</option><option value="manager">Správce</option><option value="viewer">Čtenář</option></select></label>
+    <label>Vztah<select name="relationship"><option value="member" selected>Člen týmu</option><option value="client">Klient</option><option value="agency">Agentura</option></select></label>
+    <button class="btn primary" type="submit">Sdílet projekt</button>
+  </form>
+  <p class="subtle">Sdílení platí pouze pro tento projekt. Nezpřístupní uživateli celou firmu ani jiné účetní projekty.</p>
+  {% endif %}
+
+  <hr style="border:0;border-top:1px solid var(--line);margin:20px 0">
+  <h3>Fresh Key</h3>
+  {% for req in fresh_key_requests %}
+  <div class="notice"><strong>Návrh propojení čeká na potvrzení</strong><br>{{ req.requester.email or 'Uživatel Fresh AI' }} navrhuje propojit tento projekt s <strong>{{ req.link_name }}</strong>.{% if can_manage_project %}<div class="row-actions" style="margin-top:10px"><form method="post" action="{{ url_for('web.project_linking_request_accept', project_id=project.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="request_id" value="{{ req.id }}"><button class="btn primary" type="submit">Potvrdit propojení</button></form><form method="post" action="{{ url_for('web.fresh_key_link_request_decline') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="request_id" value="{{ req.id }}"><input type="hidden" name="back" value="{{ project.id }}"><button class="btn secondary" type="submit">Odmítnout</button></form></div>{% endif %}</div>
+  {% endfor %}
+
+  {% if fresh_key_error %}
+    <div class="notice"><strong>Fresh Key se nepodařilo načíst.</strong> {{ fresh_key_error }}<br>Fresh Key ani AI Engine nevyžadují kredit pro správu účtu a propojení.</div>
+    <a class="btn secondary" href="https://aiengine.freshcrackers.cz/account/fresh-key" target="_blank" rel="noopener">Otevřít AI Engine</a>
+  {% elif not fresh_link.linked %}
+    <div class="notice"><strong>Tento projekt ještě není ve Fresh Key.</strong> Při prvním odeslání Eda automaticky připraví bezplatnou Fresh Key identitu / účet AI Enginu, pokud ještě neexistuje.</div>
+    {% if can_manage_project %}<form style="display:inline" method="post" action="{{ url_for('web.project_linking_publish', project_id=project.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn primary" type="submit">Odeslat do Fresh Key</button></form>{% endif %}
+    <a class="btn secondary" href="{{ fresh_link.manage_url or 'https://aiengine.freshcrackers.cz/account/fresh-key' }}" target="_blank" rel="noopener">Spravovat propojení</a>
+  {% else %}
+    <div class="linking-apps"><strong>Připojené aplikace:</strong> {% for a in fresh_link.applications %}<span class="status neutral">{{ a.app_label or a.app_code }}</span>{% else %}<span class="status neutral">Eda</span>{% endfor %}</div>
+    <p class="subtle">Další aplikaci připojíš v AI Enginu. Každý návrh na propojení s Edou se nejprve potvrzuje tady v aplikaci.</p>
+    <div class="row-actions"><a class="btn secondary" href="{{ fresh_link.manage_url }}" target="_blank" rel="noopener">Spravovat propojení</a></div>
+    <small class="subtle">Fresh Key: {{ fresh_link.fresh_key_id }}</small>
+  {% endif %}
+</section>
+{% endblock %}

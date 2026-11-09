@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Fakturace · {{ shop.name }}{% endblock %}
+{% block page_title %}Fakturace Edy{% endblock %}
+{% block content %}
+<div class="welcome-row"><div><span class="eyebrow dark">Eda · vlastní fakturace</span><h1>Vystavování faktur – {{ shop.name }}</h1><p class="muted-text">Eda je jediný archiv PDF. WordPress dostane jen číslo faktury a neveřejný odkaz.</p></div><a class="btn secondary" href="{{ url_for('web.shop_detail', shop_id=shop.id) }}">Zpět do e-shopu</a></div>
+<div class="notice warning">První verze podporuje pouze neplátce DPH a CZK. Před vystavením ostré faktury zkontroluj údaje dodavatele, nastavení DPH a provizní kredity.</div>
+<section class="panel form-panel" style="max-width:950px">
+<form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<h2>Vzhled faktury</h2>
+<p>Šablona podle struktury ABRA Flexi: aktuálně podporována faktura neplátce DPH (CZK). Náhled plátce DPH bude aktivován při dokončení DPH logiky.</p>
+<label>Logo vystavitele (PNG, JPG, WebP do 2 MB)<input type="file" name="company_logo" accept="image/png,image/jpeg,image/webp"></label>
+{% if has_logo %}<img src="{{ url_for('eda_invoicing.company_logo',shop_id=shop.id) }}" alt="Logo vystavitele" style="max-height:75px;max-width:260px;object-fit:contain"><p>Logo je uloženo v Edovi pro celou firmu.</p>{% endif %}
+<p><strong>Aktivní šablona:</strong> {{ 'Neplátce DPH · CZK' if issuer and issuer.vat_mode == 'nonvat' else 'Zatím neaktivní (nastav neplátce DPH)' }}</p>
+{% if issuer and issuer.vat_mode == 'nonvat' %}<p><a class="btn secondary" target="_blank" rel="noopener" href="{{ url_for('eda_invoicing.invoice_preview',shop_id=shop.id) }}">Zobrazit náhled PDF neplátce</a></p>{% endif %}
+<h2>Dodavatel faktury</h2>
+<label>Obchodní firma<input required name="company_name" value="{{ issuer.company_name if issuer else org.name }}"></label>
+<label>IČO<input required name="ico" value="{{ issuer.ico if issuer else org.ico or '' }}"></label>
+<label>Plátcovství DPH<select name="vat_mode" required>
+<option value="unknown" {{ 'selected' if not issuer or issuer.vat_mode == 'unknown' else '' }}>Nevyplněno / ověřit</option>
+<option value="nonvat" {{ 'selected' if issuer and issuer.vat_mode == 'nonvat' else '' }}>Nejsem plátce DPH</option>
+<option value="vat" {{ 'selected' if issuer and issuer.vat_mode == 'vat' else '' }}>Jsem plátce DPH (generování zatím není podporováno)</option>
+</select></label>
+<label>DIČ – pouze pokud ho má dodavatel přiděleno<input name="dic" value="{{ (issuer.dic or '') if issuer else ((profile.dic or '') if profile else '') }}"></label>
+<label>Úplná adresa<input required name="address" value="{{ issuer.address if issuer else (profile.address if profile else '') }}"></label>
+<label>Bankovní účet (CZ)<input required name="bank_account" value="{{ issuer.bank_account if issuer else '' }}"></label>
+<label>IBAN – volitelné<input name="iban" value="{{ issuer.iban if issuer else '' }}"></label>
+<label>SWIFT – volitelné<input name="swift" value="{{ issuer.swift if issuer else '' }}"></label>
+<h2>Číslování – centrálně podle firmy</h2>
+<label>Předpona faktury<input required name="series_prefix" value="{{ issuer.series_prefix if issuer else 'AR' }}"><small>Například AR → AR-2026-0001. Pro jednu firmu je jedna řada napříč e-shopy. Neměň předponu po vystavení faktur.</small></label>
+<label>Splatnost (dny)<input name="due_days" type="number" min="0" max="90" value="{{ issuer.due_days if issuer else 14 }}"></label>
+<h2>Automatizace WooCommerce – online události</h2>
+<p>Fresh Core posílá oznámení ihned po změně objednávky; Eda načte aktuální data jednotlivé objednávky.
+Zapnutí se vztahuje jen na nové objednávky od okamžiku aktivace, nikdy zpětně.</p>
+<label><input type="checkbox" name="event_automatic_enabled" value="yes" {% if event_settings and event_settings.automatic_enabled %}checked{% endif %}> Zapnout automatické zpracování událostí tohoto e-shopu</label>
+<label><input type="checkbox" name="event_auto_advance" value="yes" {% if event_settings and event_settings.auto_advance %}checked{% endif %}> Bankovní převod: automatická zálohová výzva při čekání na platbu</label>
+<label><input type="checkbox" name="event_auto_invoice" value="yes" {% if event_settings and event_settings.auto_invoice %}checked{% endif %}> Po potvrzené úhradě: automatická konečná faktura (processing/completed)</label>
+<p class="muted-text">Všechny příkazy zůstávají pod kontrolou existujících účetních validací Edy.
+Události se podepisují již propojeným Accounting key. Nový klíč ani nastavení .env není potřeba. Invoice write key slouží pouze k publikaci dokladů.</p>
+<h2>Zápis odkazu do WooCommerce</h2>
+<label>Invoice write key<input type="password" name="invoice_write_key" autocomplete="new-password" placeholder="{{ 'Klíč uložen – vyplň jen pro změnu' if publisher and publisher.encrypted_write_key else 'Vlož write key z Fresh Core' }}"><small>Samostatný zápisový klíč; nepleť s klíčem pro čtení objednávek.</small></label>
+<button class="btn primary">Uložit nastavení</button>
+</form>
+</section>
+{% endblock %}

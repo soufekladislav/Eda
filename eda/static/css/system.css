@@ -1,0 +1,37 @@
+/* Eda UI 0.8.0 – stable shared design layer (not release-by-release overrides). */
+:root { --eda-font-size:14px; --eda-font-small:12px; --eda-font-title:24px; --eda-line:1.55; --eda-gap:18px; }
+.content {font-size:var(--eda-font-size);line-height:var(--eda-line)}
+.content h1 {font-size:clamp(23px,2vw,30px);line-height:1.2;letter-spacing:-.035em}
+.content h2 {font-size:clamp(17px,1.4vw,21px);line-height:1.3;letter-spacing:-.025em}
+.content .panel {margin-bottom:var(--eda-gap);min-width:0}
+.content .muted-text {font-size:12px;line-height:1.6}
+.content .kpi strong {line-height:1.25;overflow-wrap:anywhere}
+.content .kpi span {display:block;line-height:1.45}
+.content .table-wrap {max-width:100%;overflow-x:auto}
+.content td {vertical-align:middle}
+.sidebar nav .eda-nav-group {margin:4px 0;border-radius:12px;border:1px solid rgba(255,255,255,.12)}
+.sidebar nav .eda-nav-group summary {list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:11px 13px;color:#e7ebeb;font-size:13px;font-weight:700}
+.sidebar nav .eda-nav-group summary::-webkit-details-marker {display:none}
+.sidebar nav .eda-nav-group summary span {font-size:17px;transition:transform .2s}
+.sidebar nav .eda-nav-group[open] summary span {transform:rotate(180deg)}
+.sidebar nav .eda-nav-children {padding:0 6px 7px}
+.sidebar nav .eda-nav-children a {font-size:12px;padding:9px 12px;display:block;border-radius:8px}
+.eda-admin-jump {display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+.eda-admin-jump a {display:inline-flex;padding:9px 12px;background:#fff;border:1px solid #e4e9eb;border-radius:12px;font-size:12px;font-weight:650;text-decoration:none;color:#323638}
+.eda-admin-jump a:hover {border-color:#9EC415;color:#354700}
+.eda-chat-working {display:flex;gap:10px;align-items:center;margin:0 0 8px;padding:10px 14px;border-radius:12px;background:#ecf4d5;font-size:12px;font-weight:600;color:#36450b}
+.eda-chat-working[hidden] {display:none}
+.eda-chat-spinner {width:16px;height:16px;border:2px solid #9EC415;border-top-color:transparent;border-radius:50%;animation:eda-spin .8s linear infinite}
+@keyframes eda-spin {to{transform:rotate(360deg)}}
+.chat-send:disabled {opacity:.65;cursor:progress}
+.eda-finance-chart-panel {margin-top:17px}
+.eda-chart-box {height:280px;position:relative}
+.eda-form-disclosure>summary {display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;gap:12px;font-size:14px}
+.eda-form-disclosure>summary::-webkit-details-marker {display:none}
+.eda-form-disclosure>summary small {font-size:11px;color:#7c8485}
+.eda-form-disclosure-body {padding-top:14px}
+@media(max-width:750px) { .eda-chart-box{height:230px}.eda-admin-jump{gap:6px}.eda-admin-jump a{font-size:11px;padding:7px 9px} }
+
+.eda-danger-zone{margin:0 0 16px;padding:12px 15px;border:1px solid #f0d0d7;background:#fff9fa;border-radius:13px}
+.eda-danger-zone>summary{cursor:pointer;font-weight:700;color:#8b2444;font-size:12px}
+.eda-danger-zone>form{margin-top:10px}

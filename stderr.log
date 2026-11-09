@@ -1,0 +1,238 @@
+[UID:1126][3881373] Child process with pid: 3881455 was killed by signal: 15, core dumped: no
+[2026-11-05 18:49:46,017] ERROR in app: Exception on /projects [GET]
+Traceback (most recent call last):
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/pymysql/connections.py", line 813, in _write_bytes
+    self._sock.sendall(data)
+BrokenPipeError: [Errno 32] Broken pipe
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/engine/base.py", line 1943, in _exec_single_context
+    self.dialect.do_execute(
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/engine/default.py", line 1192, in do_execute
+    cursor.execute(statement, parameters)
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/pymysql/cursors.py", line 153, in execute
+    result = self._query(query)
+             ^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/pymysql/cursors.py", line 322, in _query
+    conn.query(q)
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/pymysql/connections.py", line 574, in query
+    self._execute_command(COMMAND.COM_QUERY, sql)
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/pymysql/connections.py", line 865, in _execute_command
+    self._write_bytes(packet)
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/pymysql/connections.py", line 816, in _write_bytes
+    raise err.OperationalError(
+pymysql.err.OperationalError: (2006, "MySQL server has gone away (BrokenPipeError(32, 'Broken pipe'))")
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 915, in full_dispatch_request
+    rv = self.preprocess_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 1291, in preprocess_request
+    rv = self.ensure_sync(before_func)()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/finance.freshcrackers.cz/eda/routes.py", line 37, in _restrict_project_only_members
+    if not current_user.is_authenticated or current_user.is_admin:
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/werkzeug/local.py", line 318, in __get__
+    obj = instance._get_current_object()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/werkzeug/local.py", line 526, in _get_current_object
+    return get_name(local())
+                    ^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask_login/utils.py", line 25, in <lambda>
+    current_user = LocalProxy(lambda: _get_user())
+                                      ^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask_login/utils.py", line 370, in _get_user
+    current_app.login_manager._load_user()
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask_login/login_manager.py", line 364, in _load_user
+    user = self._user_callback(user_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/finance.freshcrackers.cz/eda/__init__.py", line 109, in load_user
+    return db.session.get(User, int(user_id))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/orm/scoping.py", line 1090, in get
+    return self._proxied.get(
+           ^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/orm/session.py", line 3845, in get
+    return self._get_impl(
+           ^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/orm/session.py", line 4032, in _get_impl
+    return db_load_fn(
+           ^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/orm/loading.py", line 702, in _load_on_pk_identity
+    session.execute(
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/orm/session.py", line 2473, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/orm/session.py", line 2363, in _execute_internal
+    compile_state_cls.orm_execute_statement(
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/orm/context.py", line 316, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/engine/base.py", line 1448, in execute
+    return meth(
+           ^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/sql/elements.py", line 533, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/engine/base.py", line 1668, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/engine/base.py", line 1822, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/engine/base.py", line 1962, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/engine/base.py", line 2332, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/engine/base.py", line 1943, in _exec_single_context
+    self.dialect.do_execute(
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib64/python3.11/site-packages/sqlalchemy/engine/default.py", line 1192, in do_execute
+    cursor.execute(statement, parameters)
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/pymysql/cursors.py", line 153, in execute
+    result = self._query(query)
+             ^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/pymysql/cursors.py", line 322, in _query
+    conn.query(q)
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/pymysql/connections.py", line 574, in query
+    self._execute_command(COMMAND.COM_QUERY, sql)
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/pymysql/connections.py", line 865, in _execute_command
+    self._write_bytes(packet)
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/pymysql/connections.py", line 816, in _write_bytes
+    raise err.OperationalError(
+sqlalchemy.exc.OperationalError: (pymysql.err.OperationalError) (2006, "MySQL server has gone away (BrokenPipeError(32, 'Broken pipe'))")
+[SQL: SELECT users.id, users.email, users.password_hash, users.display_name, users.is_admin, users.is_active_user, users.created_at, users.updated_at 
+FROM users 
+WHERE users.id = %(pk_1)s]
+[parameters: {'pk_1': 1}]
+(Background on this error at: https://sqlalche.me/e/21/e3q8)
+[2026-11-07 01:17:51,028] ERROR in app: Exception on /projects/7 [GET]
+Traceback (most recent call last):
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/finance.freshcrackers.cz/eda/routes.py", line 864, in project_detail
+    project_role=_project_access_role(project), can_manage_project=_can_manage_project(project), project_people=_project_people_local(project),
+                                                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/finance.freshcrackers.cz/eda/routes.py", line 212, in _project_people_local
+    people.append({"kind":"organization","name":user.name or email,"email":email,"role":role,"role_label":_role_label(role),
+                                                ^^^^^^^^^
+AttributeError: 'User' object has no attribute 'name'
+[2026-11-07 01:17:57,499] ERROR in app: Exception on /projects/7 [GET]
+Traceback (most recent call last):
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/finance.freshcrackers.cz/eda/routes.py", line 864, in project_detail
+    project_role=_project_access_role(project), can_manage_project=_can_manage_project(project), project_people=_project_people_local(project),
+                                                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/finance.freshcrackers.cz/eda/routes.py", line 212, in _project_people_local
+    people.append({"kind":"organization","name":user.name or email,"email":email,"role":role,"role_label":_role_label(role),
+                                                ^^^^^^^^^
+AttributeError: 'User' object has no attribute 'name'
+[2026-11-07 01:18:05,149] ERROR in app: Exception on /projects/7 [GET]
+Traceback (most recent call last):
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/finance.freshcrackers.cz/eda/routes.py", line 864, in project_detail
+    project_role=_project_access_role(project), can_manage_project=_can_manage_project(project), project_people=_project_people_local(project),
+                                                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/finance.freshcrackers.cz/eda/routes.py", line 212, in _project_people_local
+    people.append({"kind":"organization","name":user.name or email,"email":email,"role":role,"role_label":_role_label(role),
+                                                ^^^^^^^^^
+AttributeError: 'User' object has no attribute 'name'
+[2026-11-07 17:38:11,727] ERROR in app: Exception on /projects/7 [GET]
+Traceback (most recent call last):
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/finance.freshcrackers.cz/eda/routes.py", line 864, in project_detail
+    project_role=_project_access_role(project), can_manage_project=_can_manage_project(project), project_people=_project_people_local(project),
+                                                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/finance.freshcrackers.cz/eda/routes.py", line 212, in _project_people_local
+    people.append({"kind":"organization","name":user.name or email,"email":email,"role":role,"role_label":_role_label(role),
+                                                ^^^^^^^^^
+AttributeError: 'User' object has no attribute 'name'
+[2026-11-07 17:38:31,056] ERROR in app: Exception on /projects/7 [GET]
+Traceback (most recent call last):
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/virtualenv/finance.freshcrackers.cz/3.11/lib/python3.11/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/finance.freshcrackers.cz/eda/routes.py", line 864, in project_detail
+    project_role=_project_access_role(project), can_manage_project=_can_manage_project(project), project_people=_project_people_local(project),
+                                                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home2/lauhannq/finance.freshcrackers.cz/eda/routes.py", line 212, in _project_people_local
+    people.append({"kind":"organization","name":user.name or email,"email":email,"role":role,"role_label":_role_label(role),
+                                                ^^^^^^^^^
+AttributeError: 'User' object has no attribute 'name'

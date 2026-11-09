@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Příjmy a náklady{% endblock %}
+{% block page_title %}Příjmy a náklady{% endblock %}
+{% block head %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>{% endblock %}
+{% block content %}
+<div class="welcome-row"><div><span class="eyebrow dark">Finanční přehled</span><h1>Hospodaření {{ org.name }}</h1><p class="muted-text">Oddělujeme vystavené faktury, jejich evidovaný stav úhrady a skutečné peněžní pohyby. Údaje zatím nejsou plně párovány s bankou.</p></div><div class="welcome-actions"><a class="btn secondary" href="{{ url_for('web.documents') }}">Všechny doklady</a><a class="btn primary" href="{{ url_for('web.shops') }}">Vystavit z objednávky</a></div></div>
+<div class="kpi-grid">
+  <a class="kpi eda-kpi-link" href="{{ url_for('web.documents', direction='issued') }}"><span>Fakturováno (vydané)</span><strong>{{ finance_stats.issued|money }}</strong><small>Součet evidovaných faktur</small></a>
+  <a class="kpi eda-kpi-link" href="{{ url_for('web.documents', direction='issued') }}"><span>Nezaplacené faktury</span><strong>{{ finance_stats.receivable|money }}</strong><small>Dle evidence faktur</small></a>
+  <a class="kpi eda-kpi-link" href="{{ url_for('web.documents', direction='issued') }}"><span>Faktury označené uhrazené</span><strong>{{ finance_stats.invoiced_paid|money }}</strong><small>Nejde o ověření bankovního převodu</small></a>
+  <a class="kpi eda-kpi-link" href="{{ url_for('web.documents', direction='received') }}"><span>Přijaté faktury</span><strong>{{ finance_stats.received|money }}</strong></a>
+</div>
+<div class="kpi-grid" style="margin-top:12px">
+  <article class="kpi profit"><span>Evidované příjmy (posledních 100 položek)</span><strong>{{ finance_stats.income|money }}</strong><small>Ručně/importem zapsané pohyby</small></article>
+  <article class="kpi attention"><span>Evidované náklady (posledních 100 položek)</span><strong>{{ finance_stats.expense|money }}</strong></article>
+  <article class="kpi"><span>Rozdíl evidovaných pohybů</span><strong>{{ (finance_stats.income - finance_stats.expense)|money }}</strong><small>Orientační přehled, ne účetní zisk</small></article>
+</div>
+<section class="panel eda-finance-chart-panel" aria-label="Graf peněžních pohybů">
+  <div class="panel-head"><div><span class="eyebrow dark">Z evidovaných pohybů</span><h2>Vývoj příjmů a nákladů</h2></div><a class="mini-action" href="{{ url_for('web.projects') }}">Projekty</a></div>
+  <p class="muted-text">Graf obsahuje nejvýše 100 posledních ručně nebo importem evidovaných pohybů. Nejde o účetní zisk ani o úplné tržby e-shopu.</p>
+  <div class="eda-chart-box"><canvas id="edaFinanceChart" aria-label="Měsíční příjmy a náklady podle evidence" role="img"></canvas></div>
+  <script type="application/json" id="edaFinanceData">{{ finance_chart|tojson }}</script>
+</section>
+<div class="page-grid two" style="margin-top:16px">
+  <section class="panel"><div class="panel-head"><div><span class="eyebrow dark">Peněžní pohyby</span><h2>Příjmy a náklady</h2></div></div>
+    <div class="table-wrap"><table><thead><tr><th>Datum</th><th>Typ</th><th>Popis</th><th>Projekt</th><th class="right">Částka</th></tr></thead><tbody>{% for x in items %}<tr><td>{{ x.booked_on.strftime('%d.%m.%Y') }}</td><td>{{ 'Příjem' if x.kind=='income' else 'Náklad' }}</td><td>{{ x.description or x.category or '—' }}</td><td>{{ x.project.name if x.project else '—' }}</td><td class="right">{{ x.amount|money }}</td></tr>{% else %}<tr><td colspan="5">Zatím bez položek.</td></tr>{% endfor %}</tbody></table></div>
+  </section>
+  <aside class="panel form-panel"><details class="eda-form-disclosure"><summary><strong>+ Nový peněžní pohyb</strong><small>Otevřít formulář</small></summary><div class="eda-form-disclosure-body"><h2>Nový peněžní pohyb</h2><p class="muted-text">Tento formulář eviduje příjem/výdaj. Není to vystavení faktury.</p><form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Typ<select name="kind"><option value="income">Příjem</option><option value="expense">Náklad</option></select></label><label>Částka<input name="amount" inputmode="decimal" required></label><label>Datum<input type="date" name="booked_on" value="{{ today.isoformat() }}"></label><label>Kategorie<input name="category"></label><label>Popis<input name="description"></label><label>Projekt<select name="project_id"><option value="">Bez projektu</option>{% for p in projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></label><button class="btn primary full">Uložit pohyb</button></form></div></details></aside>
+</div>
+<script src="{{ url_for('static', filename='js/finance.js', v='080') }}" defer></script>
+{% endblock %}
